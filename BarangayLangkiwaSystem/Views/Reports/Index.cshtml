@@ -1,0 +1,71 @@
+﻿@{
+    ViewData["Title"] = "Reports Dashboard";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold m-0">Agency Reports Statistics</h2>
+        <a asp-action="Generate" class="btn btn-primary px-4 shadow-sm">
+            <i class="bi bi-plus-circle me-2"></i>Create Report
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4 text-center">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <small class="text-muted d-block fw-bold text-uppercase">Total Reports</small>
+                <h2 class="fw-bold m-0">@ViewBag.TotalReports</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <small class="text-muted d-block fw-bold text-uppercase">Pending Review</small>
+                <h2 class="fw-bold m-0 text-danger">@ViewBag.PendingReview</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <small class="text-muted d-block fw-bold text-uppercase">Completed</small>
+                <h2 class="fw-bold m-0 text-success">@ViewBag.Completed</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <small class="text-muted d-block fw-bold text-uppercase">This Month</small>
+                <h2 class="fw-bold m-0 text-primary">@ViewBag.ThisMonth</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <h5 class="fw-bold mb-4">Monthly Report Trends</h5>
+                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 300px;">
+                    <span class="text-muted italic">[Chart Placeholder: System Activity Trends]</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <h5 class="fw-bold mb-4">Recent Submissions</h5>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <div class="fw-bold">Monthly Strategy Report</div>
+                            <small class="text-muted">Biñan City LGU</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">Done</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <div class="fw-bold">Government Master</div>
+                            <small class="text-muted">DILG</small>
+                        </div>
+                        <span class="badge bg-warning text-dark rounded-pill">Pending</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

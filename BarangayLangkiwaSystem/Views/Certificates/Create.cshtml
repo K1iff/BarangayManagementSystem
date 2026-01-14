@@ -1,0 +1,94 @@
+﻿@{
+    ViewData["Title"] = "Issue Certificate";
+}
+
+<div class="container-fluid">
+    <h2 class="fw-bold mb-4">Issue Certificate</h2>
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <h5 class="fw-bold mb-4">Certificate Details</h5>
+                <form>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Select Resident *</label>
+                        <select class="form-select bg-light border-0">
+                            <option>Choose a resident</option>
+                        </select>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label small fw-bold">Age</label>
+                            <input type="text" class="form-control bg-light border-0" placeholder="Age" readonly />
+                        </div>
+                        <div class="col">
+                            <label class="form-label small fw-bold">Civil Status</label>
+                            <input type="text" class="form-control bg-light border-0" placeholder="Select status" readonly />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Address</label>
+                        <input type="text" class="form-control bg-light border-0" placeholder="Complete address" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Certificate Type *</label>
+                        <select class="form-select bg-light border-0">
+                            <option>Select certificate type</option>
+                            <option>Certificate of Residency</option>
+                            <option>Barangay Clearance</option>
+                            <option>Certificate of Indigency</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Purpose *</label>
+                        <textarea class="form-control bg-light border-0" rows="3" placeholder="Enter purpose"></textarea>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col">
+                            <label class="form-label small fw-bold">CTC Number</label>
+                            <input type="text" class="form-control bg-light border-0" placeholder="Optional" />
+                        </div>
+                        <div class="col">
+                            <label class="form-label small fw-bold">Issued By</label>
+                            <input type="text" class="form-control bg-light border-0" value="Hon. Rodolfo C. Montañez Jr." readonly />
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-primary"><i class="bi bi-eye me-2"></i>Preview</button>
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-2"></i>Issue Certificate</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm p-4 bg-light text-center h-100">
+                <h5 class="fw-bold mb-4 text-start">Live Preview</h5>
+                <div class="bg-white p-5 shadow mx-auto" style="max-width: 500px; min-height: 600px; border: 1px solid #ddd;">
+                    <div class="d-flex justify-content-between mb-4">
+                        <img src="~/img/brgy_logo.png" style="width: 50px; height: 50px;" />
+                        <div class="small">
+                            Republic of the Philippines<br />
+                            Province of Laguna<br />
+                            Municipality of Biñan<br />
+                            <strong>BARANGAY LANGKIWA</strong>
+                        </div>
+                        <img src="~/img/binan_logo.png" style="width: 50px; height: 50px;" />
+                    </div>
+                    <hr />
+                    <h6 class="fw-bold mt-4">OFFICE OF THE BARANGAY CAPTAIN</h6>
+                    <h4 class="fw-bold mt-3 mb-5">CERTIFICATE OF RESIDENCY</h4>
+                    <p class="text-start small">TO WHOM IT MAY CONCERN:</p>
+                    <p class="text-start small mt-4">
+                        This is to certify that <strong>[Name]</strong> of <strong>[Age]</strong> years old, <strong>[Civil Status]</strong>, Filipino citizen...
+                    </p>
+                    <div class="mt-5 pt-5 text-end">
+                        <div style="border-top: 1px solid black; display: inline-block; width: 200px;">
+                            <strong>HON. RODOLFO C. MONTAÑEZ JR.</strong><br />
+                            <small>Barangay Captain</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

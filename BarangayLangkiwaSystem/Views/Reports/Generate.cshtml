@@ -1,0 +1,71 @@
+﻿@{
+    ViewData["Title"] = "Report Generation";
+}
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Reports</a></li>
+            <li class="breadcrumb-item active">Report Generation & Data Export</li>
+        </ol>
+    </nav>
+
+    <div class="card border-0 shadow-sm rounded-3 mt-4">
+        <div class="card-header bg-white py-3 border-0">
+            <h4 class="fw-bold m-0 text-center">Report Generation & Data Export</h4>
+        </div>
+        <div class="card-body p-5">
+            <form>
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Date Range</label>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <input type="date" class="form-control bg-light border-0 py-2" placeholder="Start Date" />
+                        </div>
+                        <div class="col-md-6">
+                            <input type="date" class="form-control bg-light border-0 py-2" placeholder="End Date" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Report Type</label>
+                    <div class="list-group">
+                        <label class="list-group-item d-flex align-items-center bg-light border-0 mb-2 rounded shadow-sm">
+                            <input class="form-check-input me-3" type="radio" name="reportType" checked>
+                            Resident Summary Report
+                        </label>
+                        <label class="list-group-item d-flex align-items-center bg-light border-0 mb-2 rounded shadow-sm">
+                            <input class="form-check-input me-3" type="radio" name="reportType">
+                            Certificate Issuance Report
+                        </label>
+                        <label class="list-group-item d-flex align-items-center bg-light border-0 mb-2 rounded shadow-sm">
+                            <input class="form-check-input me-3" type="radio" name="reportType">
+                            Activity Report
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Certificate Type Filter <span class="text-muted small fw-normal">(if Applicable)</span></label>
+                    <select class="form-select bg-light border-0 py-2">
+                        <option>Select Options</option>
+                        <option>Certificate of Residency</option>
+                        <option>Indigency</option>
+                        <option>Barangay Clearance</option>
+                    </select>
+                </div>
+
+                <div class="mb-5">
+                    <label class="form-label fw-bold">Prepared by:</label>
+                    <input type="text" class="form-control bg-light border-0 py-2" value="Secretary" readonly />
+                </div>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <a asp-action="ViewReport" class="btn btn-primary px-5 py-2 shadow-sm">Generate Report</a>
+                    <button type="reset" class="btn btn-secondary px-5 py-2">Clear / Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

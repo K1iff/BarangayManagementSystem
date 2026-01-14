@@ -1,0 +1,83 @@
+﻿@model BarangayLangkiwaSystem.Models.Login
+
+@{
+    ViewData["Title"] = "Login";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Barangay Langkiwa</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .bg-login {
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://images.unsplash.com/photo-1577493322601-3ae1f35c7a0d?q=80&w=2000') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 2.5rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .btn-signin {
+            background-color: #28a745;
+            border: none;
+            color: white;
+            padding: 0.75rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-login">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 d-none d-lg-block text-white">
+                    <h1 class="display-3 fw-bold">Barangay Langkiwa</h1>
+                    <h3>Resident and Certification Management System</h3>
+                </div>
+                <div class="col-lg-5 col-md-8 mx-auto">
+                    <div class="login-card">
+                        <h4 class="text-center mb-4">Sign In</h4>
+                        <form asp-action="Login" method="post">
+                            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                            <div class="mb-3">
+                                <label asp-for="Email" class="form-label small fw-bold"></label>
+                                <input asp-for="Email" class="form-control" placeholder="admin@langkiwa.gov.ph" />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Password" class="form-label small fw-bold"></label>
+                                <input asp-for="Password" class="form-control" type="password" />
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                            </div>
+
+                            <button type="submit" class="btn btn-signin w-100">Sign In</button>
+                        </form>
+                        <div class="mt-3 text-center small text-muted">
+                            Test: admin@langkiwa.gov.ph / Password123
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

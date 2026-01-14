@@ -1,0 +1,18 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BarangayLangkiwaSystem.Models
+{
+    public class Login
+    {
+        [Required(ErrorMessage = "Email Address is required")]
+        [EmailAddress(ErrorMessage = "Invalid Email Address")]
+        [Display(Name = "Email Address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+}

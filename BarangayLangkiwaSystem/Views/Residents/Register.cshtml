@@ -1,0 +1,80 @@
+﻿@model BarangayLangkiwaSystem.Models.Resident
+
+@{
+    ViewData["Title"] = "Resident Registration Form";
+}
+
+<div class="container-fluid">
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h4 class="m-0 fw-bold text-dark">Resident Registration Form</h4>
+        </div>
+        <div class="card-body p-4">
+            <form asp-action="Register" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <h6 class="text-primary fw-bold border-bottom pb-2 mb-3">Personal Information</h6>
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <label asp-for="FirstName" class="form-label small fw-bold"></label>
+                        <input asp-for="FirstName" class="form-control" />
+                        <span asp-validation-for="FirstName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="MiddleName" class="form-label small fw-bold"></label>
+                        <input asp-for="MiddleName" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="LastName" class="form-label small fw-bold"></label>
+                        <input asp-for="LastName" class="form-control" />
+                        <span asp-validation-for="LastName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Birthdate" class="form-label small fw-bold"></label>
+                        <input asp-for="Birthdate" class="form-control" type="date" />
+                        <span asp-validation-for="Birthdate" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <h6 class="text-primary fw-bold border-bottom pb-2 mb-3">Contact & Other Information</h6>
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label asp-for="ContactNo" class="form-label small fw-bold"></label>
+                        <input asp-for="ContactNo" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Email" class="form-label small fw-bold"></label>
+                        <input asp-for="Email" class="form-control" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check mb-2">
+                            <input asp-for="IsMigrant" class="form-check-input" type="checkbox" />
+                            <label asp-for="IsMigrant" class="form-check-label small fw-bold"></label>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="text-primary fw-bold border-bottom pb-2 mb-3">Address Information</h6>
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <label asp-for="Address" class="form-label small fw-bold"></label>
+                        <input asp-for="Address" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Purok" class="form-label small fw-bold"></label>
+                        <select asp-for="Purok" class="form-select">
+                            <option value="Purok 1">Purok 1</option>
+                            <option value="Purok 2">Purok 2</option>
+                            <option value="Purok 3">Purok 3</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a asp-action="Index" class="btn btn-light border px-4">Cancel</a>
+                    <button type="submit" class="btn btn-success px-4">Save Resident</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
