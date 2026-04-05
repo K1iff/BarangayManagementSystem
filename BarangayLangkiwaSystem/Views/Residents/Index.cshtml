@@ -1,4 +1,4 @@
-﻿@model IEnumerable<BarangayLangkiwaSystem.Models.Resident>
+﻿@model List<BarangayLangkiwaSystem.Models.Resident>
 
 @{
     ViewData["Title"] = "Resident Information";
@@ -67,41 +67,56 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-3">
-        <div class="card-header bg-white py-3">
-            <ul class="nav nav-tabs card-header-tabs border-0">
-                <li class="nav-item">
-                    <a class="nav-link active border-0 fw-bold" href="#">All Residents</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-muted border-0" href="#">Active Voters</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-muted border-0" href="#">Recent Registrations</a>
-                </li>
-            </ul>
-        </div>
+
+    <div class="row g-3 mb-4">
+            </div>
+
+        <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <form method="get" asp-action="Index" class="d-flex">
+                                <input type="hidden" name="filter" value="@ViewBag.Filter">
+                                <input type="text" name="searchString" class="form-control me-2" placeholder="Search by name..." value="@ViewBag.SearchString">
+                                <button class="btn btn-primary" type="submit">Search</button>
+                            </form>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <form method="get" asp-action="Index" class="d-inline-block">
+                                <input type="hidden" name="searchString" value="@ViewBag.SearchString">
+                                <select name="filter" class="form-select" onchange="this.form.submit()">
+                                    <option value="All" selected="@(ViewBag.Filter == "All")">All Time</option>
+                                    <option value="Today" selected="@(ViewBag.Filter == "Today")">Today</option>
+                                    <option value="Week" selected="@(ViewBag.Filter == "Week")">This Week</option>
+                                    <option value="Month" selected="@(ViewBag.Filter == "Month")">This Month</option>
+                                    <option value="LastMonth" selected="@(ViewBag.Filter == "LastMonth")">Last Month</option>
+                                </select>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-striped align-middle mb-0">
                     <thead class="bg-light">
                         <tr class="small text-uppercase text-muted">
                             <th class="ps-4">Resident ID</th>
                             <th>Full Name</th>
-                            <th>Age</th>
+                            @*<th>Age</th>
                             <th>Address</th>
                             <th>Registration Date</th>
-                            <th>Voter Status</th>
+                            <th>Voter Status</th>*@
                             <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in Model)
+                        @foreach (var item in Model.OrderBy(r => r.LastName).ThenBy(r => r.FirstName))
                         {
                             <tr>
                                 <td class="ps-4 text-muted small">R-2025-00@(item.ResidentId)</td>
-                                <td class="fw-bold text-dark">@item.FirstName @item.LastName</td>
-                                <td>@item.Age</td>
+                                <td class="fw-bold text-dark">@item.FirstName @item.LastName @item.Suffix</td>
+                                @*<td>@item.Age</td>
                                 <td class="small text-muted">@item.Address</td>
                                 <td>@item.DateRegistered.ToString("MM/dd/yyyy")</td>
                                 <td>
@@ -113,11 +128,12 @@
                                     {
                                         <span class="badge bg-secondary px-3 py-2 rounded-pill">Not Voter</span>
                                     }
-                                </td>
+                                </td>*@
                                 <td class="text-center">
                                     <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-primary px-3">View</button>
-                                        <button class="btn btn-sm btn-success px-3">Edit</button>
+                                        <a asp-action="View" asp-route-id="@item.ResidentId" class="btn btn-sm btn-primary px-3">View</a>
+                                        <a asp-action="Edit" asp-route-id="@item.ResidentId" class="btn btn-sm btn-success px-3">Edit</a>
+                                       
                                     </div>
                                 </td>
                             </tr>

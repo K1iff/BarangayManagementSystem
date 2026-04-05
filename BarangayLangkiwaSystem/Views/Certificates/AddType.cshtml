@@ -1,0 +1,36 @@
+﻿@model BarangayLangkiwaSystem.Models.CertificationType
+
+@{
+    ViewData["Title"] = "Add New Certificate Type";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 p-4">
+                <h2 class="fw-bold mb-4">Add New Certificate Type</h2>
+
+                <form asp-action="AddType" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="TypeName" class="form-label fw-bold">Certificate Name</label>
+                        <input asp-for="TypeName" class="form-control form-control-lg" placeholder="e.g. Business Clearance" />
+                        <span asp-validation-for="TypeName" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">Save Type</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

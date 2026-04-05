@@ -1,0 +1,37 @@
+﻿@model BarangayLangkiwaSystem.Models.UserAccounts
+@{
+    ViewData["Title"] = "Edit User Profile";
+}
+
+@if (TempData["Success"] != null)
+{
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+}
+
+<div class="card shadow-sm p-4" style="max-width: 500px;">
+    <h4 class="fw-bold mb-4">Edit Profile</h4>
+    <form asp-action="EditProfile" method="post">
+        <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input name="username" class="form-control" value="@Model.username" required />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Staff Name</label>
+            <input name="staffName" class="form-control" value="@Model.staff_name" required />
+        </div>
+        <hr />
+        <div class="mb-3">
+            <label class="form-label">New Password</label>
+            <input type="password" name="newPassword" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" name="confirmPassword" class="form-control" />
+        </div>
+        <button type="submit" class="btn btn-success w-100">Save Changes</button>
+        <a asp-action="Profile" class="btn btn-link w-100 text-muted mt-2">Cancel</a>
+    </form>
+</div>

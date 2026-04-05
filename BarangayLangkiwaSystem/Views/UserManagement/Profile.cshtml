@@ -1,0 +1,25 @@
+﻿@model BarangayLangkiwaSystem.Models.UserAccounts
+@{
+    ViewData["Title"] = "User Profile";
+}
+
+<div class="card shadow-sm p-4" style="max-width: 500px;">
+    <h4 class="fw-bold mb-4">User Profile</h4>
+    <div class="mb-3">
+        <label class="text-muted small fw-bold">Username</label>
+        <div class="fs-5">@Model.username</div>
+    </div>
+    <div class="mb-3">
+        <label class="text-muted small fw-bold">Password</label>
+        <div class="fs-5">••••••</div>
+    </div>
+    <div class="mb-3">
+        <label class="text-muted small fw-bold">Role</label>
+        <div class="fs-5">@Model.role</div>
+    </div>
+    <div class="mb-3">
+        <label class="text-muted small fw-bold">Staff Name</label>
+        <div class="fs-5">@Model.staff_name</div>
+    </div>
+    <a asp-action="EditProfile" class="btn btn-primary w-100 mt-3">Update Profile</a>
+</div>

@@ -30,9 +30,35 @@
                         <span asp-validation-for="LastName" class="text-danger small"></span>
                     </div>
                     <div class="col-md-3">
+                        <label asp-for="Suffix" class="form-label small fw-bold"></label>
+                        <input asp-for="Suffix" class="form-control"/>
+                        <span asp-validation-for="Suffix" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
                         <label asp-for="Birthdate" class="form-label small fw-bold"></label>
                         <input asp-for="Birthdate" class="form-control" type="date" />
                         <span asp-validation-for="Birthdate" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Gender" class="form-label small fw-bold"></label>
+                        <select asp-for="Gender" class="form-select">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                        <span asp-validation-for="Gender" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="CivilStatus" class="form-label small fw-bold"></label>
+                        <select asp-for="CivilStatus" class="form-select">
+                            <option value="">Select Civil Status</option>
+                            <option value="Single">Single</option>
+                            <option value="Married">Married</option>
+                            <option value="Divorced">Divorced</option>
+                            <option value="Widowed">Widowed</option>
+                            <option value="Separated">Separated</option>
+                        </select>
+                        <span asp-validation-for="CivilStatus" class="text-danger small"></span>
                     </div>
                 </div>
 
@@ -43,8 +69,20 @@
                         <input asp-for="ContactNo" class="form-control" />
                     </div>
                     <div class="col-md-4">
+                        <label asp-for="EmergencyContactName" class="form-label small fw-bold"></label>
+                        <input asp-for="EmergencyContactName" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="EmergencyContactNo" class="form-label small fw-bold"></label>
+                        <input asp-for="EmergencyContactNo" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
                         <label asp-for="Email" class="form-label small fw-bold"></label>
                         <input asp-for="Email" class="form-control" />
+                    </div>
+                    <div class="col-md-5">
+                        <label asp-for="Occupation" class="form-label small fw-bold"></label>
+                        <input asp-for="Occupation" class="form-control" />
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
                         <div class="form-check mb-2">
@@ -66,6 +104,7 @@
                             <option value="Purok 1">Purok 1</option>
                             <option value="Purok 2">Purok 2</option>
                             <option value="Purok 3">Purok 3</option>
+                            <option value="Purok 4">Purok 4</option>
                         </select>
                     </div>
                 </div>

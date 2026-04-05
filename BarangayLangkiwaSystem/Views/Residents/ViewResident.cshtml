@@ -1,0 +1,84 @@
+﻿@model BarangayLangkiwaSystem.Models.Resident
+
+@{
+    ViewData["Title"] = "Resident Details";
+
+    var today = DateTime.Today;
+    var registered = Model.DateRegistered.Date;
+
+    var totalDays = (today - registered).Days;
+
+    int years = totalDays / 365;
+    int months = (totalDays % 365) / 30;
+    int days = (totalDays % 365) % 30;
+}
+
+<div class="container-fluid">
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h4 class="m-0 fw-bold text-dark">Resident Details</h4>
+        </div>
+        <div class="card-body p-4">
+            <dl class="row">
+                <dt class="col-sm-3">Full Name</dt>
+                <dd class="col-sm-9">@Model.FirstName @Model.MiddleName @Model.LastName @Model.Suffix</dd>
+
+                <dt class="col-sm-3">Birthdate</dt>
+                <dd class="col-sm-9">@Model.Birthdate.ToString("MM/dd/yyyy")</dd>
+
+                <dt class="col-sm-3">Age</dt>
+                <dd class="col-sm-9">@Model.Age</dd>
+
+                <dt class="col-sm-3">Gender</dt>
+                <dd class="col-sm-9">@Model.Gender</dd>
+
+                <dt class="col-sm-3">Civil Status</dt>
+                <dd class="col-sm-9">@Model.CivilStatus</dd>
+
+                <dt class="col-sm-3">Address</dt>
+                <dd class="col-sm-9">@Model.Address</dd>
+
+                <dt class="col-sm-3">Purok</dt>
+                <dd class="col-sm-9">@Model.Purok</dd>
+
+                <dt class="col-sm-3">Contact No</dt>
+                <dd class="col-sm-9">@Model.ContactNo</dd>
+
+                <dt class="col-sm-3">Email</dt>
+                <dd class="col-sm-9">@Model.Email</dd>
+
+                <dt class="col-sm-3">Migrant?</dt>
+                <dd class="col-sm-9">@(Model.IsMigrant ? "Yes" : "No")</dd>
+
+                <dt class="col-sm-3">Voter Status</dt>
+                <dd class="col-sm-9">@Model.VoterStatus</dd>
+
+                <dt class="col-sm-3">Occupation</dt>
+                <dd class="col-sm-9">@Model.Occupation</dd>
+
+                <dt class="col-sm-3">Emergency Contact</dt>
+                <dd class="col-sm-9">@Model.EmergencyContactName - @Model.EmergencyContactNo</dd>
+
+                <dt class="col-sm-3">Date Registered</dt>
+                <dd class="col-sm-9">@Model.DateRegistered.ToString("MM/dd/yyyy")</dd>
+
+                <dt class="col-sm-3">Resident For</dt>
+                <dd class="col-sm-9">
+                    @if (years > 0)
+                    {
+                        @($"{years} year(s) ")
+                    }
+                    @if (months > 0)
+                    {
+                        @($"{months} month(s) ")
+                    }
+                    @if (years == 0 && months == 0)
+                    {
+                        @($"{days} day(s)")
+                    }
+                </dd>
+            </dl>
+            <a asp-action="Index" class="btn btn-light border px-4">Back</a>
+        </div>
+    </div>
+</div>

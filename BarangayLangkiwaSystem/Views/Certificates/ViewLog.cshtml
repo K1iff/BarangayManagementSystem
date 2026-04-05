@@ -1,0 +1,146 @@
+﻿@model IEnumerable<BarangayLangkiwaSystem.ViewModels.CertificateLogVM>
+
+@{
+    ViewData["Title"] = "Certification Log";
+}
+
+<style>
+    @@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #logtable, #logtable * {
+        visibility: visible;
+    }
+
+    #logtable {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+}
+</style>
+
+
+<h2 class="mb-4">Certification Log</h2>
+
+<div class="d-flex justify-content-between mb-3">
+    
+
+    <!-- Back Button -->
+    <a asp-action="Index" asp-controller="Certificates" class="btn btn-secondary">Back</a>
+</div>
+
+<form method="get" asp-action="ViewLog" class="row g-2 mb-4">
+    <div class="col-md-3">
+        <input type="text" name="searchString" class="form-control" placeholder="Search name..." value="@ViewBag.SearchString">
+    </div>
+    <div class="col-md-3">
+        <select name="typeId" class="form-select" onchange="this.form.submit()">
+            <option value="">All Types</option>
+            @foreach (var type in ViewBag.Types)
+            {
+                    <option value="@type.TypeId" selected="@(ViewBag.TypeId == type.TypeId)">@type.TypeName</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="filter" class="form-select" onchange="this.form.submit()">
+            <option value="All" selected="@(ViewBag.Filter == "All")">All Time</option>
+            <option value="Today" selected="@(ViewBag.Filter == "Today")">Today</option>
+            <option value="Week" selected="@(ViewBag.Filter == "Week")">This Week</option>
+            <option value="Month" selected="@(ViewBag.Filter == "Month")">This Month</option>
+            <option value="LastMonth" selected="@(ViewBag.Filter == "LastMonth")">Last Month</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table id = "logtable" class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Cert ID</th>
+                <th>Resident Name</th>
+                <th>Certificate Type</th>
+                <th>Purpose</th>
+                <th>Date Issued</th>
+                <th>Status</th>
+                <th>Issued By</th>
+                <th>Reference Code</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                    <tr>
+                        <td>@item.Log.CertId</td>
+                        <td>@item.ResidentName</td>
+                        <td>@item.TypeName</td> <td>@item.Log.purpose</td>
+                        <td>@item.Log.date_issued.ToString("MM/dd/yyyy HH:mm")</td>
+                        <td>@item.Log.status</td>
+                        <td>@item.IssuedByName</td>
+                        <td>@item.Log.reference_code</td>
+                    </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+    <button class="btn btn-secondary mt-3" onclick="window.print();">
+        Print Table
+    </button>
+    
+
+
+@section Scripts{
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        document.getElementById("btnPrintTable")
+            .addEventListener("click", function () {
+
+                const table = document.getElementById("logtable");
+                if (!table) {
+                    alert("Table not found.");
+                    return;
+                }
+
+                const newWin = window.open("", "", "width=900,height=700");
+
+                newWin.document.write(`
+                    <html>
+                    <head>
+                        <title>Print Certification Log</title>
+                        <style>
+                            body { font-family: Arial; padding: 20px; }
+                            table { border-collapse: collapse; width: 100%; }
+                            th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+                            th { background-color: #f2f2f2; }
+                        </style>
+                    </head>
+                    <body>
+                        <h2>Certification Log</h2>
+                        ${table.outerHTML}
+                    </body>
+                    </html>
+                `);
+
+                newWin.document.close();
+                newWin.focus();
+
+                setTimeout(function () {
+                    newWin.print();
+                    newWin.close();
+                }, 500);
+            });
+
+    });
+    </script>
+
+}

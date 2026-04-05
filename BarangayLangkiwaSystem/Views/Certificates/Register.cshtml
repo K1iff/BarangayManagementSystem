@@ -1,0 +1,162 @@
+﻿@using Microsoft.AspNetCore.Http
+@model BarangayLangkiwaSystem.ViewModels.CertificateIssueVM
+
+@{
+    ViewData["Title"] = "Certificate Preview";
+
+    // Get session info safely
+    var loggedInUserName = Context.Session.GetString("Username") ?? "Unknown User";
+    var loggedInUserRole = Context.Session.GetString("Role") ?? "Unknown Role";
+}
+
+<h2 class="mb-3">Certificate Preview</h2>
+
+<div class="card p-4 mb-4" style="border:1px solid #000;">
+    <h5 class="fw-bold mb-4 text-start">Live Preview</h5>
+    <div id="document-preview" class="doc-preview p-4" style="min-height:850px; border:1px solid #ddd;">
+        <p class="text-muted text-center mt-5">Loading certificate preview...</p>
+    </div>
+
+    <div class="mt-4" id ="action-buttons">
+        <!-- ACTION BUTTONS -->
+        <form id="appriveForm" form asp-action="Approve" asp-controller="Certificates" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+
+            <!-- REQUIRED FIELDS FOR CertificationLog -->
+    
+            <input type="hidden" name="ResidentId" value="@Model.ResidentId" />
+            <input type="hidden" name="CertificateTypeName" value="@Model.CertificateTypeName" />
+            <input type="hidden" name="Purpose" value="@Model.Purpose" />
+            <input type="hidden" name="date_issued" value="@Model.DateIssued" />
+            <input type="hidden" name="reference_code" value="@Model.ReferenceCode" />
+
+            <button type="submit" class="btn btn-success">Approve</button>
+        </form>
+
+        <form id="disapproveForm" asp-action="Disapprove" asp-controller="Certificates" method="post" class="d-inline ms-2">
+            @Html.AntiForgeryToken()
+
+            <!-- SAME DATA, DIFFERENT STATUS -->
+            <input type="hidden" name="ResidentId" value="@Model.ResidentId" />
+            <input type="hidden" name="CertificateTypeName" value="@Model.CertificateTypeName" />
+            <input type="hidden" name="Purpose" value="@Model.Purpose" />
+            <input type="hidden" name="date_issued" value="@Model.DateIssued" />
+            <input type="hidden" name="reference_code" value="@Model.ReferenceCode" />
+
+            <button type="submit" class="btn btn-danger">Disapprove</button>
+        </form>
+
+        <a asp-action="Index" asp-controller="Certificates" class="btn btn-secondary ms-2">Back</a>
+    </div>
+</div>
+
+@section Scripts {
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+        <script>
+            var loggedInUserName = '@loggedInUserName';
+            var loggedInUserRole = '@loggedInUserRole';
+        </script>
+
+        <script>
+            $(document).ready(function () {
+
+                // Resident data for placeholders
+                let residentData = {
+                    fullName: "@Model.ResidentFullName",
+                    address: "@Model.Address",
+                    age: "@Model.Age",
+                    civilStatus: "@Model.CivilStatus",
+                    daysofBeingaResident: @Model.DaysofBeingaResident
+                    
+                };
+
+                let certType = "@Model.CertificateTypeName";
+                let purpose = "@Model.Purpose";
+                let dateIssued = "@Model.DateIssued.ToString("MMMM dd, yyyy")";
+
+                // Load DOCX preview
+                if (certType) {
+                    const templatePath = '/templates/' + certType + 'Template.docx';
+                    fetch(templatePath)
+                        .then(resp => resp.arrayBuffer())
+                        .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
+                        .then(result => {
+                            let html = result.value;
+
+                            // Replace placeholders
+                            html = html.replace(/\[Name\]/g, `<strong>${residentData.fullName}</strong>`);
+                            html = html.replace(/\[Age\]/g, `<strong>${residentData.age}</strong>`);
+                            html = html.replace(/\[Civil Status\]/g, `<strong>${residentData.civilStatus}</strong>`);
+                            html = html.replace(/\[Address\]/g, `<strong>${residentData.address}</strong>`);
+                            html = html.replace(/\[Purpose\]/g, `<strong>${purpose}</strong>`);
+                            html = html.replace(/\[DaysofBeingaResident\]/g, function() {
+                                let days = residentData.daysofBeingaResident;
+
+                                const years = Math.floor(days / 365);
+                                days %= 365;
+
+                                const months = Math.floor(days / 30);
+                                days %= 30;
+
+                                const weeks = Math.floor(days / 7);
+                                days %= 7;
+
+                                let parts = [];
+                                if (years) parts.push(`${years} year${years > 1 ? 's' : ''}`);
+                                if (months) parts.push(`${months} month${months > 1 ? 's' : ''}`);
+                                if (weeks) parts.push(`${weeks} week${weeks > 1 ? 's' : ''}`);
+                                if (days) parts.push(`${days} day${days > 1 ? 's' : ''}`);
+
+                                return `<strong>${parts.join(', ')}</strong>`;
+                            });
+                            html = html.replace(/\[Date\]/g, `<strong>${dateIssued}</strong>`);
+                            html = html.replace(/\[StaffName\]/g, `<strong>${loggedInUserName}</strong>`);
+                            html = html.replace(/\[role\]/g, `<strong>${loggedInUserRole}</strong>`);
+
+                            $('#document-preview').html(html);
+                        })
+                        .catch(err => {
+                            console.error("Preview Error:", err);
+                            $('#document-preview').html('<p class="text-danger text-center">Error loading template.</p>');
+                        });
+                }
+
+                // ---  ---
+                $('#approveForm').on('submit', function (e) {
+                    e.preventDefault();
+
+                    const form = $(this);
+                    const url = form.attr('action');
+                    const data = form.serialize();
+
+                    fetch(url, {
+                        method: 'POST',
+                        body: new URLSearchParams(data),
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        }
+                    })
+                    .then(resp => resp.blob())
+                    .then(blob => {
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.download = ""; // You can set the file name if you want
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+
+                        // Redirect to Index after download starts
+                        window.location.href = '/Certificates/Index';
+                    })
+                    .catch(err => {
+                        alert('Error approving certificate. Try again.');
+                        console.error(err);
+                    });
+                });
+
+            });
+        </script>
+}

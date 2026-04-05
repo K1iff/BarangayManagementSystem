@@ -1,0 +1,107 @@
+﻿@model IEnumerable<BarangayLangkiwaSystem.Models.CertificationLog>
+
+@{
+    ViewData["Title"] = "Certificate Issuance Report";
+}
+
+<div class="container-fluid py-4 no-print">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold">Certificate Issuance Summary</h3>
+        <div class="btn-group shadow-sm">
+            <button class="btn btn-primary" onclick="exportToExcel()">
+                <i class="bi bi-file-earmark-excel me-1"></i> Excel
+            </button>
+            <button class="btn btn-secondary" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> Print / PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mx-2">
+    <div class="card-body">
+        <div class="print-header text-center mb-4">
+            <h5 class="mb-0">Republic of the Philippines</h5>
+            <h5 class="mb-0">Province of Laguna</h5>
+            <h5 class="fw-bold">City of Biñan</h5>
+            <h4 class="fw-bold mt-4">BARANGAY LANGKIWA</h4>
+            <div style="border-bottom: 2px solid black; width: 100%; margin: 10px 0;"></div>
+            <h3 class="fw-bold mt-2">CERTIFICATE ISSUANCE REPORT</h3>
+            <p class="text-muted">Generated on @DateTime.Now.ToString("MMMM dd, yyyy")</p>
+        </div>
+
+        <table class="table table-bordered align-middle" id="certTable">
+            <thead class="table-light">
+                <tr>
+                    <th>Date Requested</th>
+                    <th>Resident Name</th>
+                    <th>Certificate Type</th>
+                    <th>Purpose</th>
+                    <th class="text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.date_issued.ToString("MMM dd, yyyy")</td>
+                            <td>@item.IssuedBy</td>
+                            <td>@item.ReferenceCode</td>
+                            <td>@item.purpose</td>
+                            <td>@item.status</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            No records found in CertificationLog.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .print-header {
+        display: none;
+    }
+
+    @@media print {
+        .no-print, nav, .sidebar, footer, .btn-group {
+            display: none !important;
+        }
+
+        .print-header {
+            display: block !important;
+        }
+
+        .table th, .table td {
+            border: 1px solid #000 !important;
+            padding: 8px !important;
+        }
+
+        @@page {
+            size: portrait;
+            margin: 1cm;
+        }
+    }
+</style>
+
+<script>
+    function exportToExcel() {
+        let table = document.getElementById("certTable");
+        let html = table.outerHTML;
+        let blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        let url = URL.createObjectURL(blob);
+        let link = document.createElement("a");
+        link.href = url;
+        link.download = "Certificates_Report_" + "@DateTime.Now.ToString("yyyyMMdd")" + ".xls";
+        link.click();
+    }
+</script>

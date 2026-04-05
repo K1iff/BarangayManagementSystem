@@ -1,85 +1,170 @@
-﻿@model IEnumerable<BarangayLangkiwaSystem.Models.CertificateRequest>
+﻿@model IEnumerable<BarangayLangkiwaSystem.Models.CertificationLog>
 
 @{
     ViewData["Title"] = "Certificate Management";
 }
-
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold m-0">Certificate Management</h2>
-        <a asp-action="Create" class="btn btn-primary px-4 shadow-sm">Certification Form</a>
-    </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary px-4 shadow-sm">Certification Form</a>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm p-3 h-100">
-                <small class="text-muted d-block fw-bold">Pending Requests</small>
-                <h3 class="fw-bold m-0 text-warning">@ViewBag.Pending</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm p-3 h-100">
-                <small class="text-muted d-block fw-bold">Approved</small>
-                <h3 class="fw-bold m-0 text-success">@ViewBag.Approved</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm p-3 h-100">
-                <small class="text-muted d-block fw-bold">Released This Month</small>
-                <h3 class="fw-bold m-0 text-primary">@ViewBag.Released</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm p-3 h-100">
-                <small class="text-muted d-block fw-bold">Total Requests</small>
-                <h3 class="fw-bold m-0">@ViewBag.Total</h3>
-            </div>
+            <a asp-action="ViewLog" class="btn btn-info px-4 shadow-sm">View Log</a>
+
+            <button class="btn btn-secondary px-4 shadow-sm" onclick="selectAndPrintFile();">Print</button>
+
+            @if (ViewBag.Role == "Barangay Captain")
+            {
+                <a asp-action="AddType" class="btn btn-secondary px-4 shadow-sm">Add Certificate Type</a>
+            }
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-3">
-        <div class="card-header bg-white py-3 border-0">
-            <ul class="nav nav-tabs card-header-tabs border-0">
-                <li class="nav-item"><a class="nav-link active fw-bold" href="#">Pending Requests</a></li>
-                <li class="nav-item"><a class="nav-link text-muted" href="#">Released Certificates</a></li>
-                <li class="nav-item"><a class="nav-link text-muted" href="#">Monthly Statistics</a></li>
-            </ul>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr class="small text-muted text-uppercase">
-                            <th class="ps-4">Request ID</th>
-                            <th>Resident Name</th>
-                            <th>Certificate Type</th>
-                            <th>Request Date</th>
-                            <th>Purpose</th>
-                            <th>Status</th>
-                            <th class="text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td class="ps-4">@item.RequestId</td>
-                                <td class="fw-bold">@item.ResidentName</td>
-                                <td>@item.CertificateType</td>
-                                <td>@item.RequestDate.ToString("MM/dd/yyyy")</td>
-                                <td>@item.Purpose</td>
-                                <td><span class="badge bg-warning text-dark px-3">@item.Status</span></td>
-                                <td class="text-center">
-                                    <div class="btn-group">
-                                        <a asp-action="Details" asp-route-id="@item.RequestId" class="btn btn-sm btn-primary px-3">Approve</a>
-                                        <button class="btn btn-sm btn-danger px-3">Reject</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+   <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm p-3 d-flex flex-row align-items-center">
+                <i class="bi bi-funnel me-2 text-muted"></i>
+                <h5 class="m-0 fw-bold">Recent Requests</h5>
+                <form method="get" asp-action="Index">
+                    <select name="filter" class="form-select" onchange="this.form.submit()">
+                        <option value="All" selected="@(ViewBag.Filter == "All")">All Time</option>
+                        <option value="Today" selected="@(ViewBag.Filter == "Today")">Today</option>
+                        <option value="Week" selected="@(ViewBag.Filter == "Week")">This Week</option>
+                        <option value="Month" selected="@(ViewBag.Filter == "Month")">This Month</option>
+                        <option value="LastMonth" selected="@(ViewBag.Filter == "LastMonth")">Last Month</option>
+                    </select>
+                </form>
             </div>
         </div>
     </div>
-</div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #198754 !important;">
+                <div class="card-body">
+                    <div class="text-muted small fw-bold text-uppercase">Approved</div>
+                    <h2 class="fw-bold text-success">@ViewBag.Approved</h2>
+                    <small class="text-muted"><i class="bi bi-check-circle-fill"></i> Validated Requests</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #0d6efd !important;">
+                <div class="card-body">
+                    <div class="text-muted small fw-bold text-uppercase">Released (Month)</div>
+                    <h2 class="fw-bold text-primary">@ViewBag.Released</h2>
+                    <small class="text-muted"><i class="bi bi-send-fill"></i> Issued Certificates</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #212529 !important;">
+                <div class="card-body">
+                    <div class="text-muted small fw-bold text-uppercase">Total Requests</div>
+                    <h2 class="fw-bold text-dark">@ViewBag.Total</h2>
+                    <small class="text-muted"><i class="bi bi-file-earmark-text"></i> All Records</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-md-12"> <div class="card border-0 shadow-sm p-4">
+                <h5 class="fw-bold mb-4">Certificates Issued by Type</h5>
+                    <canvas id="certChart" height = "250"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    
+                        
+
+
+@section Scripts{
+
+<script>
+    let inactivityTime = function () {
+        let time;
+        window.onload = resetTimer;
+        document.onmousemove = resetTimer;
+        document.onkeypress = resetTimer;
+
+        function logout() {
+            alert("You have been logged out due to inactivity.");
+            window.location.href = '@Url.Action("Logout", "Accounts")';
+        }
+
+        function resetTimer() {
+            clearTimeout(time);
+            time = setTimeout(logout, 5 * 60 * 1000); // 5 minutes
+        }
+    };
+
+    inactivityTime();
+</script>
+
+<script>
+    var ctx = document.getElementById('certChart').getContext('2d');
+    var certChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: @Html.Raw(Json.Serialize(ViewBag.ChartLabels)),
+            datasets: [{
+                label: 'Certificates Issued',
+                data: @Html.Raw(Json.Serialize(ViewBag.ChartValues)),
+                backgroundColor: '#0d6efd', // Bootstrap primary color
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+</script>
+
+<script>
+function selectAndPrintFile() {
+    // Create a hidden file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.doc,.docx,.pdf,.txt'; // accept common document types
+
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // For PDFs: open in new tab
+        if (file.type === "application/pdf") {
+            const url = URL.createObjectURL(file);
+            const printWindow = window.open(url);
+            printWindow.onload = () => printWindow.print();
+        } else {
+            // For Word / text files, we can read as text and open in new window
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const w = window.open("");
+                w.document.write(`<pre>${ev.target.result}</pre>`);
+                w.document.close();
+                w.focus();
+                w.print();
+            };
+            reader.readAsText(file);
+        }
+    };
+
+    input.click(); // trigger file dialog
+}
+</script>
+
+}

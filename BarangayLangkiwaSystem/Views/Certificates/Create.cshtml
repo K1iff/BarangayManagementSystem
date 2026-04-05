@@ -1,6 +1,28 @@
-﻿@{
+﻿@using BarangayLangkiwaSystem.ViewModels
+@using Microsoft.AspNetCore.Http
+@model AllData
+
+
+@{
     ViewData["Title"] = "Issue Certificate";
+
+    // Get session info safely
+    var loggedInUserName = Context.Session.GetString("Username") ?? "Unknown User";
+    var loggedInUserRole = Context.Session.GetString("Role") ?? "Unknown Role";
 }
+<style>
+    .doc-preview {
+    width: 100%;            /* take all of col-md-7 width */
+    max-width: 600px;       /* optional, keeps it readable */
+    min-height: 850px;      /* approx A4 ratio */
+    margin: auto;
+    padding: 2rem;
+    border: 1px solid #ddd;
+    background: white;
+    overflow: auto;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+</style>
 
 <div class="container-fluid">
     <h2 class="fw-bold mb-4">Issue Certificate</h2>
@@ -8,54 +30,50 @@
         <div class="col-md-5">
             <div class="card border-0 shadow-sm p-4 h-100">
                 <h5 class="fw-bold mb-4">Certificate Details</h5>
-                <form>
+                <form asp-action="Register" method="post">
+                    @Html.AntiForgeryToken()
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Select Resident *</label>
-                        <select class="form-select bg-light border-0">
-                            <option>Choose a resident</option>
-                        </select>
+                        <label class="form-label small fw-bold">Search Resident *</label>
+                        <input type="text"
+                               id="ResidentSearch"
+                               class="form-control bg-light border-0"
+                               placeholder="Type resident name..." />
+                        <!-- IMPORTANT: this is what gets submitted -->
+                        <input type="hidden" id="ResidentId" name="ResidentId" />
                     </div>
                     <div class="row mb-3">
                         <div class="col">
                             <label class="form-label small fw-bold">Age</label>
-                            <input type="text" class="form-control bg-light border-0" placeholder="Age" readonly />
+                            <input type="text" id="InputAge" class="form-control bg-light border-0" placeholder="Age" readonly />
                         </div>
                         <div class="col">
                             <label class="form-label small fw-bold">Civil Status</label>
-                            <input type="text" class="form-control bg-light border-0" placeholder="Select status" readonly />
+                            <input type="text" id="InputStatus" class="form-control bg-light border-0" placeholder="Status" readonly />
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Address</label>
-                        <input type="text" class="form-control bg-light border-0" placeholder="Complete address" readonly />
+                        <input type="text" id="InputAddress" class="form-control bg-light border-0" placeholder="Complete address" readonly />
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Certificate Type *</label>
-                        <select class="form-select bg-light border-0">
-                            <option>Select certificate type</option>
-                            <option>Certificate of Residency</option>
-                            <option>Barangay Clearance</option>
-                            <option>Certificate of Indigency</option>
+                        <select id="CertTypeSelect" name="CertificateTypeName" class="form-select bg-light border-0">
+                            <option value="">Select certificate type</option>
+                            @foreach (var type in ViewBag.CertificateTypes)
+                            {
+                                <option value="@type.TypeName">@type.TypeName</option>
+                            }
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Purpose *</label>
-                        <textarea class="form-control bg-light border-0" rows="3" placeholder="Enter purpose"></textarea>
-                    </div>
-                    <div class="row mb-4">
-                        <div class="col">
-                            <label class="form-label small fw-bold">CTC Number</label>
-                            <input type="text" class="form-control bg-light border-0" placeholder="Optional" />
-                        </div>
-                        <div class="col">
-                            <label class="form-label small fw-bold">Issued By</label>
-                            <input type="text" class="form-control bg-light border-0" value="Hon. Rodolfo C. Montañez Jr." readonly />
-                        </div>
+                        <textarea id="InputPurpose" name="Purpose" class="form-control bg-light border-0" rows="3" placeholder="Enter purpose"></textarea>
                     </div>
                     <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-primary"><i class="bi bi-eye me-2"></i>Preview</button>
                         <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-2"></i>Issue Certificate</button>
                     </div>
+
+                    <a asp-action="Index" asp-controller="Certificates" class="btn btn-secondary mt-2">Back</a>
                 </form>
             </div>
         </div>
@@ -63,32 +81,140 @@
         <div class="col-md-7">
             <div class="card border-0 shadow-sm p-4 bg-light text-center h-100">
                 <h5 class="fw-bold mb-4 text-start">Live Preview</h5>
-                <div class="bg-white p-5 shadow mx-auto" style="max-width: 500px; min-height: 600px; border: 1px solid #ddd;">
-                    <div class="d-flex justify-content-between mb-4">
-                        <img src="~/img/brgy_logo.png" style="width: 50px; height: 50px;" />
-                        <div class="small">
-                            Republic of the Philippines<br />
-                            Province of Laguna<br />
-                            Municipality of Biñan<br />
-                            <strong>BARANGAY LANGKIWA</strong>
-                        </div>
-                        <img src="~/img/binan_logo.png" style="width: 50px; height: 50px;" />
-                    </div>
-                    <hr />
-                    <h6 class="fw-bold mt-4">OFFICE OF THE BARANGAY CAPTAIN</h6>
-                    <h4 class="fw-bold mt-3 mb-5">CERTIFICATE OF RESIDENCY</h4>
-                    <p class="text-start small">TO WHOM IT MAY CONCERN:</p>
-                    <p class="text-start small mt-4">
-                        This is to certify that <strong>[Name]</strong> of <strong>[Age]</strong> years old, <strong>[Civil Status]</strong>, Filipino citizen...
-                    </p>
-                    <div class="mt-5 pt-5 text-end">
-                        <div style="border-top: 1px solid black; display: inline-block; width: 200px;">
-                            <strong>HON. RODOLFO C. MONTAÑEZ JR.</strong><br />
-                            <small>Barangay Captain</small>
-                        </div>
-                    </div>
+                <div id="document-preview" class="doc-preview bg-white p-5 shadow mx-auto text-start">
+                    <p class="text-muted text-center mt-5">Select a resident and certificate type to generate preview...</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <link rel="stylesheet"
+        href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+    <script>
+        // Make Razor variables available in JavaScript
+        var loggedInUserName = '@loggedInUserName';
+        var loggedInUserRole = '@loggedInUserRole';
+    </script>
+
+    <script>
+        $(document).ready(function () {
+            console.log("Certificate Script Loaded!"); // Check F12 Console for this
+
+            let residentData = {};
+
+            // 1. Autofill Resident Data
+            $("#ResidentSearch").autocomplete({
+                source: '/Certificates/SearchResidents',
+                minLength: 2,
+                select: function (event, ui) {
+
+                    // Set visible name
+                    $("#ResidentSearch").val(ui.item.value);
+
+                    // Set hidden ResidentId (VERY IMPORTANT)
+                    $("#ResidentId").val(ui.item.id);
+
+                    // Autofill resident info
+                    $.getJSON('/Certificates/GetResidentDetails/' + ui.item.id, function (data) {
+                        residentData = data;
+                        $('#InputAge').val(data.age);
+                        $('#InputStatus').val(data.civilStatus);
+                        $('#InputAddress').val(data.address);
+                        updatePreview();
+                    });
+
+                    return false;
+                }
+            });
+
+            // 2. Load Template when Type changes
+            $('#CertTypeSelect').on('change', function () {
+                console.log("Certificate Type Selected:", $(this).val());
+                updatePreview();
+            });
+
+            // 3. Update preview as user types purpose
+            $('#InputPurpose').on('input', function() {
+                updatePreview();
+            });
+
+            function updatePreview() {
+                var certType = $('#CertTypeSelect').val();
+
+                if (!certType || !residentData.fullName) {
+                    console.log("Preview update skipped: Missing type or resident data.");
+                    return;
+                }
+
+                // Ensure this matches your file in wwwroot/templates/ResidencyTemplate.docx
+                var templatePath = '/templates/' + certType + 'Template.docx';
+                console.log("Attempting to fetch template from:", templatePath);
+
+                fetch(templatePath)
+                    .then(response => {
+                        if (!response.ok) {
+                             throw new Error("Could not find " + templatePath);
+                        }
+                        return response.arrayBuffer();
+                    })
+                    .then(arrayBuffer => {
+                        mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
+                            .then(function (result) {
+                                let html = result.value;
+
+                                // Replace placeholders
+                                html = html.replace(/\[Name\]/g, `<strong>${residentData.fullName}</strong>`);
+                                html = html.replace(/\[Age\]/g, `<strong>${residentData.age}</strong>`);
+                                html = html.replace(/\[Civil Status\]/g, `<strong>${residentData.civilStatus}</strong>`);
+                                html = html.replace(/\[Address\]/g, `<strong>${residentData.address}</strong>`);
+
+                                let currentPurpose = $('#InputPurpose').val() || "________________";
+                                html = html.replace(/\[Purpose\]/g, `<strong>${currentPurpose}</strong>`);
+
+                                    html = html.replace(/\[DaysofBeingaResident\]/g, function() {
+                                        let days = residentData.daysBeingResident;
+
+                                        const years = Math.floor(days / 365);
+                                        days %= 365;
+
+                                        const months = Math.floor(days / 30);
+                                        days %= 30;
+
+                                        const weeks = Math.floor(days / 7);
+                                        days %= 7;
+
+                                        let parts = [];
+                                        if (years) parts.push(`${years} year${years > 1 ? 's' : ''}`);
+                                        if (months) parts.push(`${months} month${months > 1 ? 's' : ''}`);
+                                        if (weeks) parts.push(`${weeks} week${weeks > 1 ? 's' : ''}`);
+                                        if (days) parts.push(`${days} day${days > 1 ? 's' : ''}`);
+
+                                        return `<strong>${parts.join(', ')}</strong>`;
+                                    });
+
+                                let today = new Date();
+                                let formattedDate = today.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+                                html = html.replace(/\[Date\]/g, `<strong>${formattedDate}</strong>`);
+
+                                html = html.replace(/\[StaffName\]/g, `<strong>${loggedInUserName}</strong>`);
+                                html = html.replace(/\[role\]/g, `<strong>${loggedInUserRole}</strong>`);
+
+                                $('#document-preview').html(html);
+                                console.log("Preview Updated Successfully");
+                            });
+                    })
+                    .catch(err => {
+                        console.error("Preview Error:", err);
+                        $('#document-preview').html('<p class="text-danger text-center">Error: Please ensure <b>' + certType + 'Template.docx</b> is inside <b>wwwroot/templates/</b></p>');
+                    });
+            }
+        });
+    </script>
+}

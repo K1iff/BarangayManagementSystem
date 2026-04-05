@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35219.272
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BarangayLangkiwaSystem", "BarangayLangkiwaSystem.csproj", "{45134D2C-5FF3-4D74-8098-310461ECCA85}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{45134D2C-5FF3-4D74-8098-310461ECCA85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45134D2C-5FF3-4D74-8098-310461ECCA85}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45134D2C-5FF3-4D74-8098-310461ECCA85}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45134D2C-5FF3-4D74-8098-310461ECCA85}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D607CAFD-9EBE-4829-8303-8ABDED85D999}
+	EndGlobalSection
+EndGlobal

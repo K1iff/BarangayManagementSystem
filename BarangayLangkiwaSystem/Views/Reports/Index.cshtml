@@ -1,71 +1,229 @@
 ﻿@{
+
     ViewData["Title"] = "Reports Dashboard";
+
 }
 
+
+
 <div class="container-fluid">
+
     <div class="d-flex justify-content-between align-items-center mb-4">
+
         <h2 class="fw-bold m-0">Agency Reports Statistics</h2>
+
         <a asp-action="Generate" class="btn btn-primary px-4 shadow-sm">
+
             <i class="bi bi-plus-circle me-2"></i>Create Report
+
         </a>
+
     </div>
+
+
 
     <div class="row g-3 mb-4 text-center">
-        <div class="col-md-3">
+
+        <div class="col-md-4">
+
             <div class="card border-0 shadow-sm p-4 h-100">
+
                 <small class="text-muted d-block fw-bold text-uppercase">Total Reports</small>
+
                 <h2 class="fw-bold m-0">@ViewBag.TotalReports</h2>
+
             </div>
+
         </div>
-        <div class="col-md-3">
+
+        <div class="col-md-4">
+
             <div class="card border-0 shadow-sm p-4 h-100">
-                <small class="text-muted d-block fw-bold text-uppercase">Pending Review</small>
-                <h2 class="fw-bold m-0 text-danger">@ViewBag.PendingReview</h2>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm p-4 h-100">
+
                 <small class="text-muted d-block fw-bold text-uppercase">Completed</small>
+
                 <h2 class="fw-bold m-0 text-success">@ViewBag.Completed</h2>
+
             </div>
+
         </div>
-        <div class="col-md-3">
+
+        <div class="col-md-4">
+
             <div class="card border-0 shadow-sm p-4 h-100">
+
                 <small class="text-muted d-block fw-bold text-uppercase">This Month</small>
+
                 <h2 class="fw-bold m-0 text-primary">@ViewBag.ThisMonth</h2>
+
             </div>
+
         </div>
+
     </div>
 
+
+
     <div class="row">
+
         <div class="col-md-7">
+
             <div class="card border-0 shadow-sm p-4 h-100">
-                <h5 class="fw-bold mb-4">Monthly Report Trends</h5>
-                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 300px;">
-                    <span class="text-muted italic">[Chart Placeholder: System Activity Trends]</span>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+
+                    <h5 class="fw-bold m-0" id="chartTitle">Weekly Report Trends</h5>
+
+                    <div class="btn-group btn-group-sm" role="group">
+
+                        <button type="button" class="btn btn-outline-primary active" onclick="loadChartData('weekly', this)">Weekly</button>
+
+                        <button type="button" class="btn btn-outline-primary" onclick="loadChartData('monthly', this)">Monthly</button>
+
+                        <button type="button" class="btn btn-outline-primary" onclick="loadChartData('quarterly', this)">Quarterly</button>
+
+                        <button type="button" class="btn btn-outline-primary" onclick="loadChartData('annually', this)">Annually</button>
+
+                    </div>
+
                 </div>
+
+
+
+                <div style="height: 300px; position: relative;">
+
+                    <canvas id="trendsChart"></canvas>
+
+                </div>
+
             </div>
+
         </div>
+
+
+
         <div class="col-md-5">
+
             <div class="card border-0 shadow-sm p-4 h-100">
+
                 <h5 class="fw-bold mb-4">Recent Submissions</h5>
-                <ul class="list-group list-group-flush small">
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
-                        <div>
-                            <div class="fw-bold">Monthly Strategy Report</div>
-                            <small class="text-muted">Biñan City LGU</small>
-                        </div>
-                        <span class="badge bg-success rounded-pill">Done</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
-                        <div>
-                            <div class="fw-bold">Government Master</div>
-                            <small class="text-muted">DILG</small>
-                        </div>
-                        <span class="badge bg-warning text-dark rounded-pill">Pending</span>
-                    </li>
+
+                <ul class="list-group list-group-flush small" id="recentSubmissionsList">
+
+                    <li class="list-group-item text-center py-4 text-muted">Loading submissions...</li>
+
                 </ul>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
+
+
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let trendsChart;
+
+        $(document).ready(function () {
+            // Load initial data on page load
+            loadChartData('weekly');
+        });
+
+        function loadChartData(filter, element) {
+            // 1. Change the Active Button UI
+            if (element) {
+                $('.btn-group .btn').removeClass('active');
+                $(element).addClass('active');
+            }
+
+            // 2. Change the Title Text
+            const titleElement = document.getElementById('chartTitle');
+            if (titleElement) {
+                titleElement.innerText = filter.charAt(0).toUpperCase() + filter.slice(1) + " Report Trends";
+            }
+
+            // 3. Fetch Data from Controller
+            // Note: Ensure your controller uses 'RequestDate' to avoid the CS1061 error
+                    $.getJSON('@Url.Action("GetChartData", "Reports")?filter=' + filter, function (data) {
+            console.log("Response from server:", data); // This will tell us the truth
+            renderChart(data.labels, data.total, data.pending);
+            updateRecentList(data.recentItems);
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.error("Error fetching data: ", textStatus, errorThrown);
+        });
+        }
+
+        function renderChart(labels, totalData, pendingData) {
+            const ctx = document.getElementById('trendsChart').getContext('2d');
+            if (trendsChart) trendsChart.destroy();
+
+            trendsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Reports',
+                            data: totalData,
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Pending Review',
+                            data: pendingData,
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // NEW: This builds the "Recent Submissions" list on the right side
+        function updateRecentList(items) {
+            const list = $('#recentSubmissionsList');
+            list.empty();
+
+            if (!items || items.length === 0) {
+                list.append('<li class="list-group-item text-center py-4 text-muted">No recent submissions found.</li>');
+                return;
+            }
+
+            items.forEach(item => {
+                const statusClass = item.status === 'Pending' ? 'bg-danger' : 'bg-success';
+                const html = `
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <p class="mb-0 fw-bold text-dark">${item.type}</p>
+                            <small class="text-muted">${item.residentName}</small>
+                        </div>
+                        <span class="badge ${statusClass} rounded-pill">${item.status}</span>
+                    </li>`;
+                list.append(html);
+            });
+        }
+    </script>
+}

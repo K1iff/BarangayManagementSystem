@@ -1,0 +1,40 @@
+﻿@model IEnumerable<BarangayLangkiwaSystem.Models.UserAccounts>
+
+@{
+    ViewData["Title"] = "Manage Accounts";
+}
+
+<h2 class="fw-bold mb-4">User Account Management</h2>
+
+<table class="table table-hover bg-white shadow-sm rounded">
+    <thead>
+        <tr>
+            <th>Staff Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model)
+        {
+                <tr>
+                    <td>@user.staff_name</td>
+                    <td>@user.role</td>
+                    <td>
+                        <span class="badge @(user.is_active ? "bg-success" : "bg-danger")">
+                        @(user.is_active ? "Active" : "Inactive")
+                        </span>
+                    </td>
+                    <td>
+                        <form asp-action="ToggleStatus" asp-route-id="@user.user_id" method="post"
+                            onsubmit="return confirm('Are you sure you want to @(user.is_active ? "deactivate" : "activate") the account for @user.staff_name?');">
+                            <button type="submit" class="btn btn-sm btn-outline-dark">
+                            @(user.is_active ? "Deactivate" : "Activate")
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+        }
+    </tbody>
+</table>

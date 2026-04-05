@@ -1,0 +1,45 @@
+﻿@model BarangayLangkiwaSystem.Models.Resident
+
+@{
+    ViewData["Title"] = "Delete Resident";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 4rem;"></i>
+                    </div>
+
+                    <h2 class="fw-bold">Are you sure?</h2>
+                    <p class="text-muted mb-4">
+                        You are about to delete the record for <br />
+                        <span class="fw-bold text-dark">@Model.FirstName @Model.LastName</span>.
+                        This action cannot be undone.
+                    </p>
+
+                    <div class="d-flex justify-content-center gap-3">
+                        <form asp-action="Delete">
+                            <input type="hidden" asp-for="ResidentId" />
+                            <button type="submit" class="btn btn-danger px-4">
+                                <i class="bi bi-trash me-1"></i> Yes, Delete Record
+                            </button>
+                        </form>
+
+                        <a asp-action="Index" class="btn btn-light px-4 border">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+</style>

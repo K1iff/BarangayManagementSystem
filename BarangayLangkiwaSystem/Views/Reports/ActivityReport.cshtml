@@ -1,0 +1,120 @@
+﻿@model IEnumerable<BarangayLangkiwaSystem.Models.SystemActivity>
+
+@{
+    ViewData["Title"] = "System Activity Report";
+}
+
+<div class="container-fluid py-4 no-print">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold">System Activity Logs</h3>
+        <div class="btn-group shadow-sm">
+            <button class="btn btn-primary" onclick="handleExcelExport()">
+                <i class="bi bi-file-earmark-excel me-1"></i> Excel
+            </button>
+            <button class="btn btn-secondary" onclick="handlePrint()">
+                <i class="bi bi-printer me-1"></i> Print / PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mx-2">
+    <div class="card-body">
+        <div class="print-header text-center mb-4">
+            <h5 class="mb-0">Republic of the Philippines</h5>
+            <h5 class="mb-0">Province of Laguna</h5>
+            <h5 class="fw-bold">City of Biñan</h5>
+            <h4 class="fw-bold mt-4">BARANGAY LANGKIWA</h4>
+            <div style="border-bottom: 2px solid black; width: 100%; margin: 10px 0;"></div>
+            <h3 class="fw-bold mt-2">SYSTEM ACTIVITY REPORT</h3>
+            <p class="text-muted">Generated on @DateTime.Now.ToString("MMMM dd, yyyy HH:mm")</p>
+        </div>
+
+        <table class="table table-bordered align-middle" id="activityTable">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 20%;">Timestamp</th>
+                    <th style="width: 15%;">User Role</th>
+                    <th style="width: 50%;">Action Performed</th>
+                    <th style="width: 15%; text-align: center;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var activity in Model)
+                {
+                    <tr>
+                        <td class="text-muted">@activity.Timestamp.ToString("MMM dd, yyyy hh:mm tt")</td>
+                        <td><span class="badge bg-light text-dark border">@activity.UserRole</span></td>
+                        <td>
+                            <i class="@activity.Icon me-2"></i> @activity.Action
+                        </td>
+                        <td class="text-center"><span class="text-success">Success</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .print-header {
+        display: none;
+    }
+
+    @@media print {
+        .no-print, nav, .sidebar, footer, .btn-group {
+            display: none !important;
+        }
+
+        .print-header {
+            display: block !important;
+        }
+
+        .table th, .table td {
+            border: 1px solid #000 !important;
+            padding: 8px !important;
+        }
+
+        @@page {
+            size: portrait;
+            margin: 1cm;
+        }
+    }
+</style>
+
+<script>
+    // 1. Logging function for Dashboard Tracking
+    function recordLog(format) {
+        const reportName = "System Activity Report";
+
+        fetch('/Reports/LogExport', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `type=${encodeURIComponent(reportName)}&format=${encodeURIComponent(format)}`
+        }).catch(err => console.error("Dashboard tracking failed:", err));
+    }
+
+    // 2. Handler for Print
+    function handlePrint() {
+        recordLog("Print/PDF");
+        window.print();
+    }
+
+    // 3. Handler for Excel
+    function handleExcelExport() {
+        recordLog("Excel");
+        exportToExcel();
+    }
+
+    // Original Excel Export Logic
+    function exportToExcel() {
+        let table = document.getElementById("activityTable");
+        let html = table.outerHTML;
+        let blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        let url = URL.createObjectURL(blob);
+        let link = document.createElement("a");
+        link.href = url;
+        link.download = "Activity_Report_" + "@DateTime.Now.ToString("yyyyMMdd")" + ".xls";
+        link.click();
+    }
+</script>

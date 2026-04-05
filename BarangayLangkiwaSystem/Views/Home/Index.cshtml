@@ -1,62 +1,213 @@
-﻿@{
+﻿@model BarangayLangkiwaSystem.Models.DashboardViewModel
+
+@{
     ViewData["Title"] = "Dashboard";
 }
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <div class="container-fluid">
     <div class="mb-4">
         <h2 class="fw-bold text-dark">Dashboard Overview</h2>
         <p class="text-muted">Welcome to the Barangay Langkiwa Administrative Portal.</p>
     </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm p-3 d-flex flex-row align-items-center">
+                <i class="bi bi-funnel me-2 text-muted"></i>
+                <span class="fw-bold text-muted small me-3">FILTER DATA BY:</span>
+                <form method="get" asp-controller="Home" asp-action="Index" id="filterForm" class="flex-grow-1">
+                    <select name="filter" class="form-select border-0 bg-light" style="width: 200px;" onchange="this.form.submit()">
+                        <option value="Total" selected="@(ViewBag.CurrentFilter == "Total")">All Time</option>
+                        <option value="Today" selected="@(ViewBag.CurrentFilter == "Today")">Today</option>
+                        <option value="Week" selected="@(ViewBag.CurrentFilter == "Week")">This Week</option>
+                        <option value="Month" selected="@(ViewBag.CurrentFilter == "Month")">This Month</option>
+                        <option value="LastMonth" selected="@(ViewBag.CurrentFilter == "LastMonth")">Last Month</option>
+                    </select>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <div class="row g-4">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #0d6efd !important;">
                 <div class="card-body">
                     <div class="text-muted small fw-bold text-uppercase">Total Residents</div>
-                    <h2 class="fw-bold text-primary">@ViewBag.TotalResidents</h2>
-                    <small class="text-success"><i class="bi bi-arrow-up"></i> Population Data</small>
+                    <h2 class="fw-bold text-primary">@Model.TotalResidents.ToString("N0")</h2>
+                    <small class="text-success"><i class="bi bi-people-fill"></i> Population Data</small>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #198754 !important;">
                 <div class="card-body">
                     <div class="text-muted small fw-bold text-uppercase">Certificates Issued</div>
-                    <h2 class="fw-bold text-success">@ViewBag.CertificatesIssued</h2>
-                    <small class="text-muted">Released Records</small>
+                    <h2 class="fw-bold text-success">@Model.CertificatesIssued</h2>
+                    <small class="text-muted"><i class="bi bi-file-earmark-check"></i> Released Records</small>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #ffc107 !important;">
-                <div class="card-body">
-                    <div class="text-muted small fw-bold text-uppercase">Pending Requests</div>
-                    <h2 class="fw-bold text-warning">@ViewBag.PendingRequests</h2>
-                    <small class="text-danger">Action Required</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #0dcaf0 !important;">
                 <div class="card-body">
                     <div class="text-muted small fw-bold text-uppercase">Reports Generated</div>
-                    <h2 class="fw-bold text-info">@ViewBag.ReportsGenerated</h2>
-                    <small class="text-muted">For LGU Submission</small>
+                    <h2 class="fw-bold text-info">@Model.ReportsGenerated</h2>
+                    <small class="text-muted"><i class="bi bi-graph-up"></i> For LGU Submission</small>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mt-5">
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3">
+                    <h5 class="m-0 fw-bold">System Performance Overview</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="performanceChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4 g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3">
+                    <h5 class="m-0 fw-bold">Population Statistics (By Age Group)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="ageGroupChart" style="min-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3">
+                    <h5 class="m-0 fw-bold">Gender Distribution</h5>
+                </div>
+                <div class="card-body d-flex justify-content-center">
+                    <canvas id="genderPieChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4 mb-5">
         <div class="col-12">
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white py-3">
                     <h5 class="m-0 fw-bold">Recent System Activity</h5>
                 </div>
-                <div class="card-body">
-                    <p class="text-muted">No recent activities to display. Database connection pending.</p>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        @foreach (var activity in Model.RecentActivities)
+                        {
+                            <li class="list-group-item py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="bi @activity.Icon fs-4 me-3"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <h6 class="mb-0 fw-bold">@activity.Action</h6>
+                                            <small class="text-muted">@activity.TimeAgo</small>
+                                        </div>
+                                        <small class="text-muted">Logged by: @activity.UserRole</small>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    //Resident, Certificate and Reports Column chart
+    const perfCtx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(perfCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Residents Added', 'Certificates Issued', 'Reports Generated'],
+            datasets: [{
+                label: 'Count',
+                data: [@Model.TotalResidents, @Model.CertificatesIssued, @Model.ReportsGenerated],
+                backgroundColor: [
+                    'rgba(13, 110, 253, 0.7)', // Blue
+                    'rgba(25, 135, 84, 0.7)',  // Green
+                    'rgba(13, 202, 240, 0.7)'  // Cyan
+                ],
+                borderColor: '#fff',
+                borderWidth: 1,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+
+    //Population Statistics: Column Chart
+    const ageCtx = document.getElementById('ageGroupChart').getContext('2d');
+    new Chart(ageCtx, {
+        type: 'bar',
+        data: {
+            labels: ['0-17 yrs', '18-35 yrs', '36-50 yrs', '51-65 yrs', '66+ yrs'],
+            datasets: [{
+                label: 'Number of Residents',
+                data: @Html.Raw(Json.Serialize(Model.AgeDistributions)),
+                backgroundColor: [
+                    'rgba(13, 110, 253, 0.7)',
+                    'rgba(25, 135, 84, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(220, 53, 69, 0.7)',
+                    'rgba(108, 117, 125, 0.7)'
+                ],
+                borderColor: '#fff',
+                borderWidth: 1,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // 2. Gender Distribution: Pie Chart
+    const genderCtx = document.getElementById('genderPieChart').getContext('2d');
+    new Chart(genderCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Male', 'Female'],
+            datasets: [{
+                data: [@Model.MaleCount, @Model.FemaleCount],
+                backgroundColor: ['#0d6efd', '#fd7e14'], // Blue for Male, Orange for Female
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+</script>
