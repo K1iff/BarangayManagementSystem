@@ -1,32 +1,35 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using BarangayLangkiwaSystem.Data;
+using Microsoft.AspNetCore.Mvc;
 using BarangayLangkiwaSystem.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using System.Threading.Tasks;
 
 namespace BarangayLangkiwaSystem.Controllers
 {
     public class ResidentsController : BaseController
     {
-        private readonly BarangayDBContext _context;
+        private readonly Supabase.Client _client;
 
-        public ResidentsController(BarangayDBContext context)
+        public ResidentsController(Supabase.Client client)
         {
-            _context = context;
+            _client = client;
         }
 
-        public IActionResult Index(string searchString, string filter = "All")
+        public async Task<IActionResult> Index(string searchString, string filter = "All")
         {
             DateTime now = DateTime.Now;
-            var residentsQuery = _context.Residents.AsQueryable();
+            var response = await _client.From<Resident>().Get();
+            var residentsList = response.Models;
+
+            IEnumerable<Resident> residentsQuery = residentsList;
 
             // 1. Search Logic
             if (!string.IsNullOrEmpty(searchString))
             {
                 residentsQuery = residentsQuery.Where(r =>
-                    r.FirstName.Contains(searchString) ||
-                    r.LastName.Contains(searchString));
+                    (r.FirstName != null && r.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase)) ||
+                    (r.LastName != null && r.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase)));
             }
 
             // 2. Date Filter Logic
@@ -53,11 +56,10 @@ namespace BarangayLangkiwaSystem.Controllers
 
             var residents = residentsQuery.ToList();
 
-
             ViewBag.TotalRegistered = residents.Count;
             ViewBag.ActiveVoters = residents.Count(r => r.Age >= 18);
             ViewBag.NewResidents = residents.Count(r => r.DateRegistered >= DateTime.Today.AddMonths(-1));
-            ViewBag.TotalHouseholds = residents.Select(r => r.Address).Distinct().Count();
+            ViewBag.TotalHouseholds = residents.Select(r => r.Address).Where(a => !string.IsNullOrEmpty(a)).Distinct().Count();
 
             return View(residents);
         }
@@ -66,77 +68,75 @@ namespace BarangayLangkiwaSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Register(Resident resident)
+        public async Task<IActionResult> Register(Resident resident)
         {
             if (ModelState.IsValid)
             {
                 resident.DateRegistered = DateTime.Now;
-                _context.Residents.Add(resident);
-                _context.SaveChanges();
+                await _client.From<Resident>().Insert(resident);
 
-                LogActivity($"New resident registered: {resident.FirstName} {resident.LastName}", "bi-person-plus text-success");
+                await LogActivity($"New resident registered: {resident.FirstName} {resident.LastName}", "bi-person-plus text-success");
 
                 return RedirectToAction(nameof(Index));
             }
             return View(resident);
         }
 
-        // GET: Residents/Delete/5
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var resident = _context.Residents.FirstOrDefault(r => r.ResidentId == id);
+            var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+            var resident = response.Models.FirstOrDefault();
             if (resident == null) return NotFound();
-            return View(resident); // This usually opens a "Are you sure?" page
+            return View(resident);
         }
 
-        // POST: Residents/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var resident = _context.Residents.Find(id);
+            var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+            var resident = response.Models.FirstOrDefault();
             if (resident != null)
             {
                 string fullName = $"{resident.FirstName} {resident.LastName}";
-                _context.Residents.Remove(resident);
-                _context.SaveChanges();
+                await _client.From<Resident>().Where(r => r.ResidentId == id).Delete();
 
-                // LOG THE DELETE ACTION
-                LogActivity($"Resident record deleted: {fullName}", "bi-trash text-danger");
+                await LogActivity($"Resident record deleted: {fullName}", "bi-trash text-danger");
             }
             return RedirectToAction(nameof(Index));
         }
 
-        public IActionResult View(int id)
+        public async Task<IActionResult> View(int id)
         {
-            var resident = _context.Residents.FirstOrDefault(r => r.ResidentId == id);
+            var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+            var resident = response.Models.FirstOrDefault();
             if (resident == null) return NotFound();
             return View("ViewResident", resident);
         }
 
-        public IActionResult Edit(int id)
+        public async Task<IActionResult> Edit(int id)
         {
-            var resident = _context.Residents.FirstOrDefault(r => r.ResidentId == id);
+            var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+            var resident = response.Models.FirstOrDefault();
             if (resident == null) return NotFound();
             return View("EditResident", resident);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, Resident resident)
+        public async Task<IActionResult> Edit(int id, Resident resident)
         {
             if (id != resident.ResidentId) 
                 return BadRequest();
 
             if (ModelState.IsValid)
             {
-                var existingResident = _context.Residents
-                    .FirstOrDefault(r => r.ResidentId == id);
+                var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+                var existingResident = response.Models.FirstOrDefault();
 
                 if (existingResident == null)
                     return NotFound();
 
-                // Update only editable fields
                 existingResident.FirstName = resident.FirstName;
                 existingResident.MiddleName = resident.MiddleName;
                 existingResident.LastName = resident.LastName;
@@ -152,16 +152,17 @@ namespace BarangayLangkiwaSystem.Controllers
                 existingResident.Occupation = resident.Occupation;
                 existingResident.EmergencyContactName = resident.EmergencyContactName;
                 existingResident.EmergencyContactNo = resident.EmergencyContactNo;
-                _context.SaveChanges();
 
-                LogActivity($"Resident record updated: {resident.FirstName} {resident.LastName}", "bi-pencil-square text-primary");
+                await existingResident.Update<Resident>();
+
+                await LogActivity($"Resident record updated: {resident.FirstName} {resident.LastName}", "bi-pencil-square text-primary");
 
                 return RedirectToAction(nameof(Index));
             }
             return View("EditResident", resident);
         }
 
-        private void LogActivity(string action, string icon)
+        private async Task LogActivity(string action, string icon)
         {
             try
             {
@@ -174,8 +175,7 @@ namespace BarangayLangkiwaSystem.Controllers
                     Icon = icon,
                     Timestamp = DateTime.Now
                 };
-                _context.SystemActivities.Add(activity);
-                _context.SaveChanges();
+                await _client.From<SystemActivity>().Insert(activity);
             }
             catch (Exception) { /* Fail silently to prevent app crash */ }
         }

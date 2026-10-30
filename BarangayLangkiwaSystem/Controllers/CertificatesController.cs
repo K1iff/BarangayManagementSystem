@@ -1,39 +1,41 @@
-﻿using BarangayLangkiwaSystem.Data;
 using BarangayLangkiwaSystem.Models;
 using BarangayLangkiwaSystem.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using Microsoft.AspNetCore.Routing.Template;
+using System.Threading.Tasks;
 
 namespace BarangayLangkiwaSystem.Controllers
 {
     public class CertificatesController : BaseController
     {
-        private readonly BarangayDBContext _context;
+        private readonly Supabase.Client _client;
 
-        public CertificatesController(BarangayDBContext context)
+        public CertificatesController(Supabase.Client client)
         {
-            _context = context;
+            _client = client;
         }
 
         private int GetLoggedInUserId()
         {
-            // Returns logged-in user's ID from session
-            return HttpContext.Session.GetInt32("UserId") ?? 0; // 0 if not logged in
+            return HttpContext.Session.GetInt32("UserId") ?? 0;
         }
 
-        public IActionResult Index(string filter = "All")
+        public async Task<IActionResult> Index(string filter = "All")
         {
             DateTime now = DateTime.Now;
-            var certQuery = _context.CertificationLogs.AsQueryable();
+            var certLogsResp = await _client.From<CertificationLog>().Get();
+            var certTypesResp = await _client.From<CertificationType>().Get();
 
-            // Date Filter Logic
+            var certLogs = certLogsResp.Models;
+            var certTypes = certTypesResp.Models;
+
+            IEnumerable<CertificationLog> certQuery = certLogs;
+
             switch (filter)
             {
                 case "Today":
@@ -52,8 +54,10 @@ namespace BarangayLangkiwaSystem.Controllers
                     break;
             }
 
-            var chartData = certQuery
-                .Join(_context.CertificationTypes,
+            var filteredLogs = certQuery.ToList();
+
+            var chartData = filteredLogs
+                .Join(certTypes,
                       log => log.type_id,
                       type => type.TypeId,
                       (log, type) => new { log, type })
@@ -69,19 +73,29 @@ namespace BarangayLangkiwaSystem.Controllers
 
             ViewBag.Filter = filter;
 
-            ViewBag.Approved = certQuery.Count(r => r.status == "Approved");
-            ViewBag.Released = certQuery.Count(r => r.status == "Approved");
-            ViewBag.Total = certQuery.Count();
+            ViewBag.Approved = filteredLogs.Count(r => r.status == "Approved");
+            ViewBag.Released = filteredLogs.Count(r => r.status == "Approved");
+            ViewBag.Total = filteredLogs.Count;
                 
-            return View(certQuery.OrderByDescending(r => r.date_issued).ToList());
+            return View(filteredLogs.OrderByDescending(r => r.date_issued).ToList());
         }
 
-        public IActionResult ViewLog(string filter ="All", int? typeId = null, string searchString = "")
+        public async Task<IActionResult> ViewLog(string filter = "All", int? typeId = null, string searchString = "")
         {
             DateTime now = DateTime.Now;
-            var logQuery = _context.CertificationLogs.AsQueryable();
 
-            // 1. Date Filter Logic
+            var certLogsResp = await _client.From<CertificationLog>().Get();
+            var residentsResp = await _client.From<Resident>().Get();
+            var usersResp = await _client.From<UserAccounts>().Get();
+            var certTypesResp = await _client.From<CertificationType>().Get();
+
+            var certLogs = certLogsResp.Models;
+            var residents = residentsResp.Models;
+            var users = usersResp.Models;
+            var certTypes = certTypesResp.Models;
+
+            IEnumerable<CertificationLog> logQuery = certLogs;
+
             switch (filter)
             {
                 case "Today": logQuery = logQuery.Where(r => r.date_issued.Date == now.Date); break;
@@ -95,14 +109,12 @@ namespace BarangayLangkiwaSystem.Controllers
                     logQuery = logQuery.Where(r => r.date_issued.Month == lastMonth.Month && r.date_issued.Year == lastMonth.Year); break;
             }
 
-            // 2. Type Filter
             if (typeId.HasValue) logQuery = logQuery.Where(l => l.type_id == typeId);
 
-            // 3. Join and Search Logic
             var viewModelQuery = logQuery
-                .Join(_context.Residents, l => l.resident_id, r => r.ResidentId, (l, r) => new { l, r })
-                .Join(_context.UserAccounts, combined => combined.l.issued_by, u => u.user_id, (combined, u) => new { combined, u })
-                .Join(_context.CertificationTypes, c => c.combined.l.type_id, t => t.TypeId, (c, t) => new { c, t })
+                .Join(residents, l => l.resident_id, r => r.ResidentId, (l, r) => new { l, r })
+                .Join(users, combined => combined.l.issued_by, u => u.user_id, (combined, u) => new { combined, u })
+                .Join(certTypes, c => c.combined.l.type_id, t => t.TypeId, (c, t) => new { c, t })
                 .Select(x => new CertificateLogVM
                 {
                     Log = x.c.combined.l,
@@ -111,51 +123,52 @@ namespace BarangayLangkiwaSystem.Controllers
                     TypeName = x.t.TypeName
                 });
 
-            // 4. Name Search (Resident or Staff)
             if (!string.IsNullOrEmpty(searchString))
             {
                 viewModelQuery = viewModelQuery.Where(x =>
-                    x.ResidentName.Contains(searchString) ||
-                    x.IssuedByName.Contains(searchString));
+                    (x.ResidentName != null && x.ResidentName.Contains(searchString, StringComparison.OrdinalIgnoreCase)) ||
+                    (x.IssuedByName != null && x.IssuedByName.Contains(searchString, StringComparison.OrdinalIgnoreCase)));
             }
 
             ViewBag.Filter = filter;
             ViewBag.TypeId = typeId;
             ViewBag.SearchString = searchString;
-            ViewBag.Types = _context.CertificationTypes.ToList();
+            ViewBag.Types = certTypes;
 
             return View(viewModelQuery.OrderByDescending(x => x.Log.date_issued).ToList());
         }
 
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            var certificateTypes = _context.CertificationTypes.ToList();
+            var certTypesResp = await _client.From<CertificationType>().Get();
+            var certificateTypes = certTypesResp.Models;
 
-            // 2. Condition: If the table is empty, do not allow issuance
             if (certificateTypes == null || !certificateTypes.Any())
             {
-                // Add a message to show the user why they were redirected
                 TempData["ErrorMessage"] = "You cannot issue a certificate because no Certificate Types have been defined yet. Please add a Certificate Type first.";
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewBag.CertificateTypes = _context.CertificationTypes.ToList();
+            ViewBag.CertificateTypes = certificateTypes;
+
+            var residentsResp = await _client.From<Resident>().Get();
+            var certRequestsResp = await _client.From<CertRequest>().Get();
 
             AllData vmAllData = new AllData
             {
-                Residents = _context.Residents.ToList(),
-                CertificateRequests = _context.CertificateRequests.ToList(),
-                
+                Residents = residentsResp.Models,
+                CertificateRequests = certRequestsResp.Models,
             };
 
             return View(vmAllData);
         }
 
         [HttpGet]
-        public IActionResult SearchResidents(string term)
+        public async Task<IActionResult> SearchResidents(string term)
         {
-            var residents = _context.Residents
-                .Where(r => (r.FirstName + " " + r.LastName).Contains(term))
+            var residentsResp = await _client.From<Resident>().Get();
+            var residents = residentsResp.Models
+                .Where(r => (r.FirstName + " " + r.LastName).Contains(term, StringComparison.OrdinalIgnoreCase))
                 .Select(r => new
                 {
                     id = r.ResidentId,
@@ -168,22 +181,19 @@ namespace BarangayLangkiwaSystem.Controllers
             return Json(residents);
         }
 
-        // --- UPDATED API FOR AUTOFILL ---
         [HttpGet]
-        public IActionResult GetResidentDetails(int id)
+        public async Task<IActionResult> GetResidentDetails(int id)
         {
-            // Fetches the resident from the database context
-            var resident = _context.Residents.FirstOrDefault(r => r.ResidentId == id);
+            var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+            var resident = response.Models.FirstOrDefault();
 
             if (resident == null) return NotFound();
 
-            // Logic to calculate age accurately based on the Birthdate column
             int age = DateTime.Now.Year - resident.Birthdate.Year;
             if (resident.Birthdate > DateTime.Now.AddYears(-age)) age--;
 
             int daysofBeingaResident = (DateTime.Now - resident.DateRegistered).Days;
 
-            // This JSON object matches what your JavaScript is looking for
             return Json(new
             {
                 fullName = resident.FirstName + " " + resident.LastName,
@@ -193,33 +203,32 @@ namespace BarangayLangkiwaSystem.Controllers
                 daysBeingResident = daysofBeingaResident
             });
         }
-        // 1. Display the form
+
         [HttpGet]
         public IActionResult AddType()
         {
             return View();
         }
 
-        // 2. Process the form submission
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddType(CertificationType model)
         {
             if (ModelState.IsValid)
             {
-                _context.CertificationTypes.Add(model);
-                await _context.SaveChangesAsync();
+                await _client.From<CertificationType>().Insert(model);
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
         }
-        public IActionResult Details(int ResidentId)
+
+        public async Task<IActionResult> Details(int ResidentId)
         {
-            var resident = _context.Residents.FirstOrDefault(r => r.ResidentId == ResidentId);
+            var response = await _client.From<Resident>().Where(r => r.ResidentId == ResidentId).Get();
+            var resident = response.Models.FirstOrDefault();
             var vm = new Resident() { ResidentId = ResidentId };
             return View(vm);
         }
-
 
         [HttpGet]
         public IActionResult Register(CertificateIssueVM vm)
@@ -229,13 +238,13 @@ namespace BarangayLangkiwaSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Register(AllData vm)
+        public async Task<IActionResult> Register(AllData vm)
         {
-            var resident = _context.Residents.FirstOrDefault(r=>r.ResidentId == vm.ResidentId);
+            var response = await _client.From<Resident>().Where(r => r.ResidentId == vm.ResidentId).Get();
+            var resident = response.Models.FirstOrDefault();
             if (resident == null) 
                 return NotFound();
 
-            // Calculate residency duration
             int residencyDuration = (DateTime.Now - resident.DateRegistered).Days;
 
             var preview = new CertificateIssueVM
@@ -252,43 +261,40 @@ namespace BarangayLangkiwaSystem.Controllers
                 IssuedByName = "Barangay Staff",
                 ReferenceCode = Guid.NewGuid().ToString(),
                 DaysofBeingaResident = residencyDuration
-                
             };
 
-            return View("Register", preview); // VERY IMPORTANT
-
+            return View("Register", preview);
         }
 
         [HttpPost]
-        public IActionResult Approve(CertificateIssueVM vm)
+        public async Task<IActionResult> Approve(CertificateIssueVM vm)
         {
-            var resident = _context.Residents
-                .FirstOrDefault(r => r.ResidentId == vm.ResidentId);
+            var resResp = await _client.From<Resident>().Where(r => r.ResidentId == vm.ResidentId).Get();
+            var resident = resResp.Models.FirstOrDefault();
 
             if (resident == null)
                 return NotFound();
 
-            var type = _context.CertificationTypes
-                .First(t => t.TypeName == vm.CertificateTypeName);
+            var typeResp = await _client.From<CertificationType>().Where(t => t.TypeName == vm.CertificateTypeName).Get();
+            var type = typeResp.Models.FirstOrDefault();
+
+            if (type == null)
+                return NotFound();
 
             var log = new CertificationLog
             {
                 resident_id = vm.ResidentId,
-                type_id = _context.CertificationTypes
-                    .First(t => t.TypeName == vm.CertificateTypeName).TypeId,
+                type_id = type.TypeId,
                 purpose = vm.Purpose,
                 date_issued = DateTime.Now,
                 status = "Approved",
                 issued_by = GetLoggedInUserId(),
-                reference_code = Guid.NewGuid().ToString(),
-                //approval_status = "Approved"
+                reference_code = Guid.NewGuid().ToString()
             };
 
-            _context.CertificationLogs.Add(log);
-            _context.SaveChanges();
+            await _client.From<CertificationLog>().Insert(log);
 
-            int daysofBeingaResident =
-        (DateTime.Now - resident.DateRegistered).Days;
+            int daysofBeingaResident = (DateTime.Now - resident.DateRegistered).Days;
 
             string templatePath = Path.Combine(
                 Directory.GetCurrentDirectory(),
@@ -316,80 +322,74 @@ namespace BarangayLangkiwaSystem.Controllers
 
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(newFilePath, true))
             {
-                var body = wordDoc.MainDocumentPart.Document.Body;
-
-                foreach (var para in body.Descendants<Paragraph>())
+                var body = wordDoc.MainDocumentPart?.Document.Body;
+                if (body != null)
                 {
-                    var runs = para.Elements<Run>().ToList();
-                    if (!runs.Any()) continue;
-
-                    // Combine all text in the paragraph
-                    string combinedText = string.Concat(runs.Select(r => string.Concat(r.Elements<Text>().Select(t => t.Text))));
-
-                    // Check if paragraph contains any placeholder
-                    if (combinedText.Contains("[Name]") || combinedText.Contains("[Purpose]") ||
-                        combinedText.Contains("[Date]") || combinedText.Contains("[Address]") ||
-                        combinedText.Contains("[StaffName]") || combinedText.Contains("[role]") ||
-                        combinedText.Contains("[DaysofBeingaResident]"))
+                    foreach (var para in body.Descendants<Paragraph>())
                     {
-                        // Replace placeholders
-                        combinedText = combinedText.Replace("[Name]", resident.FirstName + " " + resident.LastName)
-                                                   .Replace("[Purpose]", vm.Purpose)
-                                                   .Replace("[Date]", DateTime.Now.ToString("MMMM dd, yyyy"))
-                                                   .Replace("[Address]", resident.Address)
-                                                   .Replace("[StaffName]", staffName)
-                                                   .Replace("[role]", staffRole)
-                                                   .Replace("[DaysofBeingaResident]", 
-                                                        daysofBeingaResident >= 365 ? $"{daysofBeingaResident / 365} year(s)" :
-                                                        daysofBeingaResident >= 30 ? $"{daysofBeingaResident / 30} month(s)" :
-                                                        daysofBeingaResident >= 7 ? $"{daysofBeingaResident / 7} week(s)" :
-                                                        $"{daysofBeingaResident} day(s)");
-                                            
+                        var runs = para.Elements<Run>().ToList();
+                        if (!runs.Any()) continue;
 
-                        // Remove old runs
-                        para.RemoveAllChildren<Run>();
+                        string combinedText = string.Concat(runs.Select(r => string.Concat(r.Elements<Text>().Select(t => t.Text))));
 
-                        // Add a single new run with replaced text
-                        Run newRun = new Run(new Text(combinedText));
-                        para.Append(newRun);
+                        if (combinedText.Contains("[Name]") || combinedText.Contains("[Purpose]") ||
+                            combinedText.Contains("[Date]") || combinedText.Contains("[Address]") ||
+                            combinedText.Contains("[StaffName]") || combinedText.Contains("[role]") ||
+                            combinedText.Contains("[DaysofBeingaResident]"))
+                        {
+                            combinedText = combinedText.Replace("[Name]", resident.FirstName + " " + resident.LastName)
+                                                       .Replace("[Purpose]", vm.Purpose)
+                                                       .Replace("[Date]", DateTime.Now.ToString("MMMM dd, yyyy"))
+                                                       .Replace("[Address]", resident.Address)
+                                                       .Replace("[StaffName]", staffName)
+                                                       .Replace("[role]", staffRole)
+                                                       .Replace("[DaysofBeingaResident]",
+                                                            daysofBeingaResident >= 365 ? $"{daysofBeingaResident / 365} year(s)" :
+                                                            daysofBeingaResident >= 30 ? $"{daysofBeingaResident / 30} month(s)" :
+                                                            daysofBeingaResident >= 7 ? $"{daysofBeingaResident / 7} week(s)" :
+                                                            $"{daysofBeingaResident} day(s)");
+
+                            para.RemoveAllChildren<Run>();
+
+                            Run newRun = new Run(new Text(combinedText));
+                            para.Append(newRun);
+                        }
                     }
-                }
 
-                wordDoc.MainDocumentPart.Document.Save();
+                    wordDoc.MainDocumentPart.Document.Save();
+                }
             }
 
-            // 3️⃣ Return File Immediately (Download)
             return File(
                 System.IO.File.ReadAllBytes(newFilePath),
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 fileName
             );
-
-
         }
 
-
         [HttpPost]
-        public IActionResult Disapprove(CertificateIssueVM vm)
+        public async Task<IActionResult> Disapprove(CertificateIssueVM vm)
         {
+            var typeResp = await _client.From<CertificationType>().Where(t => t.TypeName == vm.CertificateTypeName).Get();
+            var type = typeResp.Models.FirstOrDefault();
+
+            if (type == null)
+                return NotFound();
+
             var log = new CertificationLog
             {
                 resident_id = vm.ResidentId,
-                type_id = _context.CertificationTypes
-                    .First(t => t.TypeName == vm.CertificateTypeName).TypeId,
+                type_id = type.TypeId,
                 purpose = vm.Purpose,
                 date_issued = DateTime.Now,
                 status = "Disapproved",
                 issued_by = GetLoggedInUserId(),
-                reference_code = Guid.NewGuid().ToString(),
-                //approval_status = "Disapproved"
+                reference_code = Guid.NewGuid().ToString()
             };
 
-            _context.CertificationLogs.Add(log);
-            _context.SaveChanges();
+            await _client.From<CertificationLog>().Insert(log);
 
             return RedirectToAction("Index");
         }
-
     }
 }

@@ -1,13 +1,29 @@
 using Microsoft.AspNetCore.StaticFiles;
-using BarangayLangkiwaSystem.Data;
-using Microsoft.EntityFrameworkCore;
+using Supabase;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddDbContext<BarangayDBContext>(options =>
-  options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddHttpClient();
+
+builder.Services.AddScoped<Supabase.Client>(provider =>
+{
+    var configuration = provider.GetRequiredService<IConfiguration>();
+    var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+
+    var url = configuration["Supabase:Url"] ?? string.Empty;
+    var key = configuration["Supabase:Key"] ?? string.Empty;
+
+    var options = new SupabaseOptions
+    {
+        AutoConnectRealtime = false
+    };
+
+    var client = new Supabase.Client(url, key, options);
+    client.InitializeAsync().Wait();
+    return client;
+});
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -17,12 +33,10 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-
 var app = builder.Build();
 
 app.UseSession();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

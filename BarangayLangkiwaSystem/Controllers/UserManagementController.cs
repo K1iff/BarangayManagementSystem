@@ -1,65 +1,74 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using BarangayLangkiwaSystem.Data;
+using Microsoft.AspNetCore.Mvc;
 using BarangayLangkiwaSystem.Models;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
 namespace BarangayLangkiwaSystem.Controllers
 {
     public class UserManagementController : BaseController
     {
-        private readonly BarangayDBContext _context;
+        private readonly Supabase.Client _client;
 
-        public UserManagementController(BarangayDBContext context)
+        public UserManagementController(Supabase.Client client)
         {
-            _context = context;
+            _client = client;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var accounts = _context.UserAccounts.ToList();
+            var response = await _client.From<UserAccounts>().Get();
+            var accounts = response.Models;
             return View(accounts);
         }
 
         [HttpPost]
-        public IActionResult ToggleStatus(int id)
+        public async Task<IActionResult> ToggleStatus(int id)
         {
-            var user = _context.UserAccounts.Find(id);
+            var response = await _client.From<UserAccounts>().Where(u => u.user_id == id).Get();
+            var user = response.Models.FirstOrDefault();
             if (user != null)
             {
-                user.is_active = !user.is_active; // Flip status
-                _context.SaveChanges();
+                user.is_active = !user.is_active;
+                await user.Update<UserAccounts>();
             }
             return RedirectToAction("Index");
         }
 
-        public IActionResult Profile()
+        public async Task<IActionResult> Profile()
         {
-            // Retrieve the logged-in User ID from Session
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null) return RedirectToAction("Login", "Accounts");
 
-            var user = _context.UserAccounts.Find(userId);
+            var response = await _client.From<UserAccounts>().Where(u => u.user_id == userId.Value).Get();
+            var user = response.Models.FirstOrDefault();
             if (user == null) return NotFound();
 
             return View(user);
         }
 
-        public IActionResult EditProfile()
+        public async Task<IActionResult> EditProfile()
         {
             var userId = HttpContext.Session.GetInt32("UserId");
-            var user = _context.UserAccounts.Find(userId);
+            if (userId == null) return RedirectToAction("Login", "Accounts");
+
+            var response = await _client.From<UserAccounts>().Where(u => u.user_id == userId.Value).Get();
+            var user = response.Models.FirstOrDefault();
             return View(user);
         }
 
         [HttpPost]
-        public IActionResult EditProfile(string username, string? newPassword, string? confirmPassword, string staffName)
+        public async Task<IActionResult> EditProfile(string username, string? newPassword, string? confirmPassword, string staffName)
         {
-            var user = _context.UserAccounts.Find(HttpContext.Session.GetInt32("UserId"));
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null) return RedirectToAction("Login", "Accounts");
 
-            // Update Username and StaffName
+            var response = await _client.From<UserAccounts>().Where(u => u.user_id == userId.Value).Get();
+            var user = response.Models.FirstOrDefault();
+            if (user == null) return NotFound();
+
             user.username = username;
             user.staff_name = staffName;
 
-            // Password Update Logic
             if (!string.IsNullOrEmpty(newPassword))
             {
                 if (newPassword != confirmPassword)
@@ -70,7 +79,8 @@ namespace BarangayLangkiwaSystem.Controllers
                 user.password = BCrypt.Net.BCrypt.HashPassword(newPassword);
             }
 
-            _context.SaveChanges();
+            await user.Update<UserAccounts>();
+
             HttpContext.Session.SetString("Username", user.username);
             HttpContext.Session.SetString("StaffName", user.staff_name);
 
