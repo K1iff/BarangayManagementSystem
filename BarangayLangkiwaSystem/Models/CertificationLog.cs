@@ -1,37 +1,38 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using System;
+using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Models;
 
 namespace BarangayLangkiwaSystem.Models
 {
     [Table("CertificationLog")]
-    public class CertificationLog
+    public class CertificationLog : BaseModel
     {
-        [Key]
-
-        [Column("cert_id")]
+        [PrimaryKey("cert_id", false)]
         public int CertId { get; set; }
 
+        [Column("resident_id")]
         public int resident_id { get; set; }
 
-        public int type_id { get; set; }  // link to CertificationType
+        [Column("type_id")]
+        public int type_id { get; set; }
 
+        [Column("purpose")]
         public string purpose { get; set; } = string.Empty;
 
+        [Column("date_issued")]
         public DateTime date_issued { get; set; }
 
-        public string status { get; set; } = "Pending"; // Approved / Disapproved
+        [Column("status")]
+        public string status { get; set; } = "Pending";
 
-        public int issued_by { get; set; } // link to UserAccount
+        [Column("issued_by")]
+        public int issued_by { get; set; }
 
+        [Column("reference_code")]
         public string reference_code { get; set; } = string.Empty;
 
-        [NotMapped] // This tells the database to ignore this column
         public string? IssuedBy { get; set; }
 
-        [NotMapped] // This tells the database to ignore this column
         public string? ReferenceCode { get; set; }
     }
-
 }
-

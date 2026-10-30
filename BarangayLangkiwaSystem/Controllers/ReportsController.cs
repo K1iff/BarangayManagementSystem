@@ -1,27 +1,23 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using BarangayLangkiwaSystem.Data;
+using System.Threading.Tasks;
 using BarangayLangkiwaSystem.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BarangayLangkiwaSystem.Controllers
 {
     public class ReportsController : BaseController
     {
-        private readonly BarangayDBContext _context;
+        private readonly Supabase.Client _client;
 
-        public ReportsController(BarangayDBContext context)
+        public ReportsController(Supabase.Client client)
         {
-            _context = context;
+            _client = client;
         }
 
         private bool IsAdmin()
         {
-            // Check if the session Role is BarangayCaptain or Secretary
             var role = HttpContext.Session.GetString("Role");
 
             return role == "Barangay Captain"
@@ -30,8 +26,7 @@ namespace BarangayLangkiwaSystem.Controllers
 
         private int GetLoggedInUserId()
         {
-            // Returns logged-in user's ID from session
-            return HttpContext.Session.GetInt32("UserId") ?? 0; // 0 if not logged in
+            return HttpContext.Session.GetInt32("UserId") ?? 0;
         }
 
         public override void OnActionExecuting(Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext context)
@@ -45,13 +40,17 @@ namespace BarangayLangkiwaSystem.Controllers
             base.OnActionExecuting(context);
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            var reportsResp = await _client.From<ReportLog>().Get();
+            var certRequestsResp = await _client.From<CertRequest>().Get();
 
-            ViewBag.TotalReports = _context.ReportLogs.Count();
-            //ViewBag.PendingReview = _context.CertificateRequests.Count(r => r.Status == "Pending");
-            ViewBag.Completed = _context.CertificateRequests.Count(r => r.Status == "Completed");
-            ViewBag.ThisMonth = _context.ReportLogs.Count(r => r.DateGenerated.Month == DateTime.Now.Month && r.DateGenerated.Year == DateTime.Now.Year);
+            var reportLogs = reportsResp.Models;
+            var certRequests = certRequestsResp.Models;
+
+            ViewBag.TotalReports = reportLogs.Count;
+            ViewBag.Completed = certRequests.Count(r => r.Status == "Completed");
+            ViewBag.ThisMonth = reportLogs.Count(r => r.DateGenerated.Month == DateTime.Now.Month && r.DateGenerated.Year == DateTime.Now.Year);
 
             return View();
         }
@@ -61,20 +60,20 @@ namespace BarangayLangkiwaSystem.Controllers
             return View();
         }
 
-        public IActionResult ViewReport()
+        public async Task<IActionResult> ViewReport()
         {
-            // We fetch all residents and group them by Purok
-            var residents = _context.Residents.ToList();
+            var response = await _client.From<Resident>().Get();
+            var residents = response.Models;
 
             var reportData = residents
                 .GroupBy(r => r.Purok)
                 .Select(g => new PurokReportViewModel
                 {
-                    PurokName = g.Key ?? "General/Unassigned",
+                    PurokName = string.IsNullOrEmpty(g.Key) ? "General/Unassigned" : g.Key,
                     TotalResidents = g.Count(),
                     MaleCount = g.Count(r => r.Gender == "Male"),
                     FemaleCount = g.Count(r => r.Gender == "Female"),
-                    TotalHousehold = g.Select(r => r.Address).Distinct().Count(),
+                    TotalHousehold = g.Select(r => r.Address).Where(a => !string.IsNullOrEmpty(a)).Distinct().Count(),
                     SeniorCount = g.Count(r => r.Age >= 60),
                     RegisteredVoters = g.Count(r => r.VoterStatus == "Active"),
                     NewResidents = g.Count(r => r.DateRegistered >= DateTime.Now.AddDays(-30))
@@ -85,26 +84,23 @@ namespace BarangayLangkiwaSystem.Controllers
             return View(reportData);
         }
 
-
-
         [HttpPost]
-        public IActionResult LogExport(string type, string format)
+        public async Task<IActionResult> LogExport(string type, string format)
         {
-            // FIX: Use the singular 'ReportLog' model name
             var log = new ReportLog
             {
                 ReportType = type,
                 ExportFormat = format,
                 DateGenerated = DateTime.Now
             };
-            _context.ReportLogs.Add(log);
-            _context.SaveChanges();
+            await _client.From<ReportLog>().Insert(log);
             return Ok();
         }
 
-        public IActionResult ActivityReport(DateTime? startDate, DateTime? endDate)
+        public async Task<IActionResult> ActivityReport(DateTime? startDate, DateTime? endDate)
         {
-            var query = _context.SystemActivities.AsQueryable();
+            var response = await _client.From<SystemActivity>().Get();
+            IEnumerable<SystemActivity> query = response.Models;
 
             if (startDate.HasValue)
                 query = query.Where(a => a.Timestamp.Date >= startDate.Value.Date);
@@ -117,43 +113,53 @@ namespace BarangayLangkiwaSystem.Controllers
             return View(activities);
         }
 
-        public IActionResult CertificateIssuanceReport(DateTime? startDate, DateTime? endDate, string certType)
+        public async Task<IActionResult> CertificateIssuanceReport(DateTime? startDate, DateTime? endDate, string certType)
         {
-            var query = from log in _context.CertificationLogs
-                            // Connect to Resident table for the real name
-                        join res in _context.Residents on log.resident_id equals res.ResidentId
-                        // Connect to Type table for the category name
-                        join type in _context.CertificationTypes on log.type_id equals type.TypeId
+            var certLogsResp = await _client.From<CertificationLog>().Get();
+            var residentsResp = await _client.From<Resident>().Get();
+            var certTypesResp = await _client.From<CertificationType>().Get();
+
+            var certLogs = certLogsResp.Models;
+            var residents = residentsResp.Models;
+            var certTypes = certTypesResp.Models;
+
+            var query = from log in certLogs
+                        join res in residents on log.resident_id equals res.ResidentId
+                        join type in certTypes on log.type_id equals type.TypeId
                         select new CertificationLog
                         {
                             date_issued = log.date_issued,
                             purpose = log.purpose,
                             status = log.status,
-                            // Store the real names into the existing fields for display
-                            // This avoids creating a new ViewModel
-                            IssuedBy = res.FirstName + " " + res.LastName, // Temporarily use an available string field
-                            ReferenceCode = type.TypeName // Temporarily use an available string field
+                            IssuedBy = res.FirstName + " " + res.LastName,
+                            ReferenceCode = type.TypeName
                         };
 
-            // Filter logic remains the same...
+            if (startDate.HasValue)
+                query = query.Where(c => c.date_issued.Date >= startDate.Value.Date);
+
+            if (endDate.HasValue)
+                query = query.Where(c => c.date_issued.Date <= endDate.Value.Date);
+
+            if (!string.IsNullOrEmpty(certType) && certType != "All")
+                query = query.Where(c => c.ReferenceCode == certType);
+
             var reportData = query.OrderByDescending(r => r.date_issued).ToList();
             return View(reportData);
         }
 
-        // Inside ReportsController.cs
         #region Chart Data Helpers
         [HttpGet]
-        public IActionResult GetChartData(string filter)
+        public async Task<IActionResult> GetChartData(string filter)
         {
             var period = string.IsNullOrEmpty(filter) ? "weekly" : filter.ToLower();
 
-            // These calls are what triggered the CS0103 error
             object chartData = period switch
             {
-                "monthly" => GetMonthlyData(),
-                "quarterly" => GetQuarterlyData(),
-                "annually" => GetAnnualData(),
-                _ => GetWeeklyData()
+                "monthly" => await GetMonthlyData(),
+                "quarterly" => await GetQuarterlyData(),
+                "annually" => await GetAnnualData(),
+                _ => await GetWeeklyData()
             };
 
             return Json(chartData);
@@ -161,24 +167,35 @@ namespace BarangayLangkiwaSystem.Controllers
 
         #region Unified Chart Data Logic
 
-        private object GetWeeklyData()
+        private async Task<object> GetWeeklyData()
         {
+            var reportsResp = await _client.From<ReportLog>().Get();
+            var certReqResp = await _client.From<CertRequest>().Get();
+
+            var reports = reportsResp.Models;
+            var certRequests = certReqResp.Models;
+
             var last7Days = Enumerable.Range(0, 7).Select(i => DateTime.Now.Date.AddDays(-i)).Reverse().ToList();
             return new
             {
                 labels = last7Days.Select(d => d.ToString("ddd")),
-                total = last7Days.Select(d => _context.ReportLogs.Count(r => r.DateGenerated.Date == d)),
-                pending = last7Days.Select(d => _context.CertificateRequests.Count(r => r.RequestDate.Date == d && r.Status == "Pending")),
-                recentItems = GetRecentItems(DateTime.Now.AddDays(-7))
+                total = last7Days.Select(d => reports.Count(r => r.DateGenerated.Date == d)),
+                pending = last7Days.Select(d => certRequests.Count(r => r.RequestDate.Date == d && r.Status == "Pending")),
+                recentItems = GetRecentItems(certRequests, DateTime.Now.AddDays(-7))
             };
         }
 
-        private object GetMonthlyData()
+        private async Task<object> GetMonthlyData()
         {
             var now = DateTime.Now;
             var startOfMonth = new DateTime(now.Year, now.Month, 1);
 
-            // Create 4 week-long ranges for the current month
+            var reportsResp = await _client.From<ReportLog>().Get();
+            var certReqResp = await _client.From<CertRequest>().Get();
+
+            var reports = reportsResp.Models;
+            var certRequests = certReqResp.Models;
+
             var weeks = Enumerable.Range(0, 4).Select(i => new {
                 Start = startOfMonth.AddDays(i * 7),
                 End = i == 3 ? startOfMonth.AddMonths(1).AddDays(-1) : startOfMonth.AddDays((i * 7) + 6)
@@ -187,50 +204,62 @@ namespace BarangayLangkiwaSystem.Controllers
             return new
             {
                 labels = new[] { "Week 1", "Week 2", "Week 3", "Week 4" },
-                // Updated: Using ReportLogs for Total and CertificateRequests for Pending to match your Weekly logic
-                total = weeks.Select(w => _context.ReportLogs.Count(r => r.DateGenerated >= w.Start && r.DateGenerated <= w.End)).ToArray(),
-                pending = weeks.Select(w => _context.CertificateRequests.Count(r => r.RequestDate >= w.Start && r.RequestDate <= w.End && r.Status == "Pending")).ToArray(),
-                recentItems = GetRecentItems(startOfMonth)
+                total = weeks.Select(w => reports.Count(r => r.DateGenerated >= w.Start && r.DateGenerated <= w.End)).ToArray(),
+                pending = weeks.Select(w => certRequests.Count(r => r.RequestDate >= w.Start && r.RequestDate <= w.End && r.Status == "Pending")).ToArray(),
+                recentItems = GetRecentItems(certRequests, startOfMonth)
             };
         }
 
-        private object GetQuarterlyData()
+        private async Task<object> GetQuarterlyData()
         {
             var year = DateTime.Now.Year;
             var quarters = new[] {
-        new { Name = "Q1", Start = new DateTime(year, 1, 1), End = new DateTime(year, 3, 31) },
-        new { Name = "Q2", Start = new DateTime(year, 4, 1), End = new DateTime(year, 6, 30) },
-        new { Name = "Q3", Start = new DateTime(year, 7, 1), End = new DateTime(year, 9, 30) },
-        new { Name = "Q4", Start = new DateTime(year, 10, 1), End = new DateTime(year, 12, 31) }
-    };
+                new { Name = "Q1", Start = new DateTime(year, 1, 1), End = new DateTime(year, 3, 31) },
+                new { Name = "Q2", Start = new DateTime(year, 4, 1), End = new DateTime(year, 6, 30) },
+                new { Name = "Q3", Start = new DateTime(year, 7, 1), End = new DateTime(year, 9, 30) },
+                new { Name = "Q4", Start = new DateTime(year, 10, 1), End = new DateTime(year, 12, 31) }
+            };
+
+            var reportsResp = await _client.From<ReportLog>().Get();
+            var certReqResp = await _client.From<CertRequest>().Get();
+
+            var reports = reportsResp.Models;
+            var certRequests = certReqResp.Models;
 
             return new
             {
                 labels = quarters.Select(q => q.Name).ToArray(),
-                total = quarters.Select(q => _context.ReportLogs.Count(r => r.DateGenerated >= q.Start && r.DateGenerated <= q.End)).ToArray(),
-                pending = quarters.Select(q => _context.CertificateRequests.Count(r => r.RequestDate >= q.Start && r.RequestDate <= q.End && r.Status == "Pending")).ToArray(),
-                recentItems = GetRecentItems(DateTime.Now.AddMonths(-3))
+                total = quarters.Select(q => reports.Count(r => r.DateGenerated >= q.Start && r.DateGenerated <= q.End)).ToArray(),
+                pending = quarters.Select(q => certRequests.Count(r => r.RequestDate >= q.Start && r.RequestDate <= q.End && r.Status == "Pending")).ToArray(),
+                recentItems = GetRecentItems(certRequests, DateTime.Now.AddMonths(-3))
             };
         }
 
-        private object GetAnnualData()
+        private async Task<object> GetAnnualData()
         {
             var currentYear = DateTime.Now.Year;
             var years = new[] { currentYear - 2, currentYear - 1, currentYear };
 
+            var reportsResp = await _client.From<ReportLog>().Get();
+            var certReqResp = await _client.From<CertRequest>().Get();
+
+            var reports = reportsResp.Models;
+            var certRequests = certReqResp.Models;
+
             return new
             {
                 labels = years.Select(y => y.ToString()).ToArray(),
-                total = years.Select(y => _context.ReportLogs.Count(r => r.DateGenerated.Year == y)).ToArray(),
-                pending = years.Select(y => _context.CertificateRequests.Count(r => r.RequestDate.Year == y && r.Status == "Pending")).ToArray(),
-                recentItems = GetRecentItems(DateTime.Now.AddYears(-1))
+                total = years.Select(y => reports.Count(r => r.DateGenerated.Year == y)).ToArray(),
+                pending = years.Select(y => certRequests.Count(r => r.RequestDate.Year == y && r.Status == "Pending")).ToArray(),
+                recentItems = GetRecentItems(certRequests, DateTime.Now.AddYears(-1))
             };
         }
 
         #endregion
-        private object GetRecentItems(DateTime since)
+
+        private object GetRecentItems(List<CertRequest> requests, DateTime since)
         {
-            return _context.CertificateRequests
+            return requests
                 .Where(r => r.RequestDate >= since)
                 .OrderByDescending(r => r.RequestDate)
                 .Take(5)

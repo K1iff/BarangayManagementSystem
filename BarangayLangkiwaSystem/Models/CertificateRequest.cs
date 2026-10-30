@@ -1,32 +1,25 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using System;
+using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Models;
 
 namespace BarangayLangkiwaSystem.Models
 {
     [Table("CertificateRequest")]
-    public class CertRequest
+    public class CertRequest : BaseModel
     {
-        [Key]
-        [Column("request_id")]
+        [PrimaryKey("request_id", false)]
         public int RequestId { get; set; }
 
-        [Required]
         [Column("resident_id")]
         public int ResidentId { get; set; }
 
-        [Required]
         [Column("resident_name")]
         public string ResidentName { get; set; } = string.Empty;
 
-        // Added these as proper properties to match your Controller's logic
-        [NotMapped]
         public string FirstName { get; set; } = string.Empty;
 
-        [NotMapped]
         public string LastName { get; set; } = string.Empty;
 
-        [Required]
         [Column("certificate_type")]
         public string CertificateType { get; set; } = string.Empty;
 
@@ -37,6 +30,6 @@ namespace BarangayLangkiwaSystem.Models
         public DateTime RequestDate { get; set; } = DateTime.Now;
 
         [Column("status")]
-        public string Status { get; set; } = "Pending"; // Status: Pending, Approved, Released
+        public string Status { get; set; } = "Pending";
     }
 }

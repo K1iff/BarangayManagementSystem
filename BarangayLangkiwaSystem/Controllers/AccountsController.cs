@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using BarangayLangkiwaSystem.Models;
-using BarangayLangkiwaSystem.Data;
 using Microsoft.AspNetCore.Http;
 using BCrypt.Net;
 
@@ -9,12 +7,11 @@ namespace BarangayLangkiwaSystem.Controllers
 {
     public class AccountsController : Controller
     {
+        private readonly Supabase.Client _client;
 
-        private readonly BarangayDBContext _context;
-
-        public AccountsController(BarangayDBContext context)
+        public AccountsController(Supabase.Client client)
         {
-            _context = context;
+            _client = client;
         }
 
         public IActionResult Login()
@@ -24,21 +21,23 @@ namespace BarangayLangkiwaSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Login(Login model)
+        public async Task<IActionResult> Login(Login model)
         {
             if (!ModelState.IsValid) 
                 return View(model);
 
-            var user = _context.UserAccounts
-                .FirstOrDefault(u => u.username == model.Email && u.is_active);
+            var response = await _client.From<UserAccounts>()
+                .Where(u => u.username == model.Email && u.is_active == true)
+                .Get();
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.password)) // For production, hash passwords!
+            var user = response.Models.FirstOrDefault();
+
+            if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.password))
             {
                 ModelState.AddModelError("", "Invalid login attempt.");
                 return View(model);
             }
 
-            // Store user info in session
             HttpContext.Session.SetInt32("UserId", user.user_id);
             HttpContext.Session.SetString("Username", user.staff_name);
             HttpContext.Session.SetString("Role", user.role);
@@ -59,14 +58,16 @@ namespace BarangayLangkiwaSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Register(UserAccounts model)
+        public async Task<IActionResult> Register(UserAccounts model)
         {
             if (!ModelState.IsValid) 
                 return View(model);
 
-            // Check if username already exists
-            var existingUser = _context.UserAccounts
-                .FirstOrDefault(u => u.username == model.username);
+            var existingResponse = await _client.From<UserAccounts>()
+                .Where(u => u.username == model.username)
+                .Get();
+
+            var existingUser = existingResponse.Models.FirstOrDefault();
 
             if (existingUser != null)
             {
@@ -74,17 +75,12 @@ namespace BarangayLangkiwaSystem.Controllers
                 return View(model);
             }
 
-            // Hash the password before saving
             model.password = BCrypt.Net.BCrypt.HashPassword(model.password);
-
             model.is_active = true;
 
-            _context.UserAccounts.Add(model);
-            _context.SaveChanges();
+            await _client.From<UserAccounts>().Insert(model);
 
             return RedirectToAction("Login");
         }
-
-        
     }
 }
