@@ -1,3 +1,4 @@
+using BarangayLangkiwaSystem.Data;
 using Microsoft.AspNetCore.Mvc;
 using BarangayLangkiwaSystem.Models;
 using Microsoft.AspNetCore.Http;
@@ -7,16 +8,14 @@ namespace BarangayLangkiwaSystem.Controllers
 {
     public class UserManagementController : BaseController
     {
-        private readonly Supabase.Client _client;
 
-        public UserManagementController(Supabase.Client client)
+        public UserManagementController()
         {
-            _client = client;
         }
 
         public async Task<IActionResult> Index()
         {
-            var response = await _client.From<UserAccounts>().Get();
+            var response = await InMemoryDataStore.From<UserAccounts>().Get();
             var accounts = response.Models;
             return View(accounts);
         }
@@ -24,7 +23,7 @@ namespace BarangayLangkiwaSystem.Controllers
         [HttpPost]
         public async Task<IActionResult> ToggleStatus(int id)
         {
-            var response = await _client.From<UserAccounts>().Where(u => u.user_id == id).Get();
+            var response = await InMemoryDataStore.From<UserAccounts>().Where(u => u.user_id == id).Get();
             var user = response.Models.FirstOrDefault();
             if (user != null)
             {
@@ -39,7 +38,7 @@ namespace BarangayLangkiwaSystem.Controllers
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null) return RedirectToAction("Login", "Accounts");
 
-            var response = await _client.From<UserAccounts>().Where(u => u.user_id == userId.Value).Get();
+            var response = await InMemoryDataStore.From<UserAccounts>().Where(u => u.user_id == userId.Value).Get();
             var user = response.Models.FirstOrDefault();
             if (user == null) return NotFound();
 
@@ -51,7 +50,7 @@ namespace BarangayLangkiwaSystem.Controllers
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null) return RedirectToAction("Login", "Accounts");
 
-            var response = await _client.From<UserAccounts>().Where(u => u.user_id == userId.Value).Get();
+            var response = await InMemoryDataStore.From<UserAccounts>().Where(u => u.user_id == userId.Value).Get();
             var user = response.Models.FirstOrDefault();
             return View(user);
         }
@@ -62,7 +61,7 @@ namespace BarangayLangkiwaSystem.Controllers
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null) return RedirectToAction("Login", "Accounts");
 
-            var response = await _client.From<UserAccounts>().Where(u => u.user_id == userId.Value).Get();
+            var response = await InMemoryDataStore.From<UserAccounts>().Where(u => u.user_id == userId.Value).Get();
             var user = response.Models.FirstOrDefault();
             if (user == null) return NotFound();
 
