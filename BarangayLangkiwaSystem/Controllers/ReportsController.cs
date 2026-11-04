@@ -1,3 +1,4 @@
+using BarangayLangkiwaSystem.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,11 +10,9 @@ namespace BarangayLangkiwaSystem.Controllers
 {
     public class ReportsController : BaseController
     {
-        private readonly Supabase.Client _client;
 
-        public ReportsController(Supabase.Client client)
+        public ReportsController()
         {
-            _client = client;
         }
 
         private bool IsAdmin()
@@ -42,8 +41,8 @@ namespace BarangayLangkiwaSystem.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var reportsResp = await _client.From<ReportLog>().Get();
-            var certRequestsResp = await _client.From<CertRequest>().Get();
+            var reportsResp = await InMemoryDataStore.From<ReportLog>().Get();
+            var certRequestsResp = await InMemoryDataStore.From<CertRequest>().Get();
 
             var reportLogs = reportsResp.Models;
             var certRequests = certRequestsResp.Models;
@@ -62,7 +61,7 @@ namespace BarangayLangkiwaSystem.Controllers
 
         public async Task<IActionResult> ViewReport()
         {
-            var response = await _client.From<Resident>().Get();
+            var response = await InMemoryDataStore.From<Resident>().Get();
             var residents = response.Models;
 
             var reportData = residents
@@ -93,13 +92,13 @@ namespace BarangayLangkiwaSystem.Controllers
                 ExportFormat = format,
                 DateGenerated = DateTime.Now
             };
-            await _client.From<ReportLog>().Insert(log);
+            await InMemoryDataStore.From<ReportLog>().Insert(log);
             return Ok();
         }
 
         public async Task<IActionResult> ActivityReport(DateTime? startDate, DateTime? endDate)
         {
-            var response = await _client.From<SystemActivity>().Get();
+            var response = await InMemoryDataStore.From<SystemActivity>().Get();
             IEnumerable<SystemActivity> query = response.Models;
 
             if (startDate.HasValue)
@@ -115,9 +114,9 @@ namespace BarangayLangkiwaSystem.Controllers
 
         public async Task<IActionResult> CertificateIssuanceReport(DateTime? startDate, DateTime? endDate, string certType)
         {
-            var certLogsResp = await _client.From<CertificationLog>().Get();
-            var residentsResp = await _client.From<Resident>().Get();
-            var certTypesResp = await _client.From<CertificationType>().Get();
+            var certLogsResp = await InMemoryDataStore.From<CertificationLog>().Get();
+            var residentsResp = await InMemoryDataStore.From<Resident>().Get();
+            var certTypesResp = await InMemoryDataStore.From<CertificationType>().Get();
 
             var certLogs = certLogsResp.Models;
             var residents = residentsResp.Models;
@@ -169,8 +168,8 @@ namespace BarangayLangkiwaSystem.Controllers
 
         private async Task<object> GetWeeklyData()
         {
-            var reportsResp = await _client.From<ReportLog>().Get();
-            var certReqResp = await _client.From<CertRequest>().Get();
+            var reportsResp = await InMemoryDataStore.From<ReportLog>().Get();
+            var certReqResp = await InMemoryDataStore.From<CertRequest>().Get();
 
             var reports = reportsResp.Models;
             var certRequests = certReqResp.Models;
@@ -190,8 +189,8 @@ namespace BarangayLangkiwaSystem.Controllers
             var now = DateTime.Now;
             var startOfMonth = new DateTime(now.Year, now.Month, 1);
 
-            var reportsResp = await _client.From<ReportLog>().Get();
-            var certReqResp = await _client.From<CertRequest>().Get();
+            var reportsResp = await InMemoryDataStore.From<ReportLog>().Get();
+            var certReqResp = await InMemoryDataStore.From<CertRequest>().Get();
 
             var reports = reportsResp.Models;
             var certRequests = certReqResp.Models;
@@ -220,8 +219,8 @@ namespace BarangayLangkiwaSystem.Controllers
                 new { Name = "Q4", Start = new DateTime(year, 10, 1), End = new DateTime(year, 12, 31) }
             };
 
-            var reportsResp = await _client.From<ReportLog>().Get();
-            var certReqResp = await _client.From<CertRequest>().Get();
+            var reportsResp = await InMemoryDataStore.From<ReportLog>().Get();
+            var certReqResp = await InMemoryDataStore.From<CertRequest>().Get();
 
             var reports = reportsResp.Models;
             var certRequests = certReqResp.Models;
@@ -240,8 +239,8 @@ namespace BarangayLangkiwaSystem.Controllers
             var currentYear = DateTime.Now.Year;
             var years = new[] { currentYear - 2, currentYear - 1, currentYear };
 
-            var reportsResp = await _client.From<ReportLog>().Get();
-            var certReqResp = await _client.From<CertRequest>().Get();
+            var reportsResp = await InMemoryDataStore.From<ReportLog>().Get();
+            var certReqResp = await InMemoryDataStore.From<CertRequest>().Get();
 
             var reports = reportsResp.Models;
             var certRequests = certReqResp.Models;

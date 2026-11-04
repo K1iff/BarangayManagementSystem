@@ -1,3 +1,4 @@
+using BarangayLangkiwaSystem.Data;
 using Microsoft.AspNetCore.Mvc;
 using BarangayLangkiwaSystem.Models;
 using System.Collections.Generic;
@@ -9,17 +10,15 @@ namespace BarangayLangkiwaSystem.Controllers
 {
     public class ResidentsController : BaseController
     {
-        private readonly Supabase.Client _client;
 
-        public ResidentsController(Supabase.Client client)
+        public ResidentsController()
         {
-            _client = client;
         }
 
         public async Task<IActionResult> Index(string searchString, string filter = "All")
         {
             DateTime now = DateTime.Now;
-            var response = await _client.From<Resident>().Get();
+            var response = await InMemoryDataStore.From<Resident>().Get();
             var residentsList = response.Models;
 
             IEnumerable<Resident> residentsQuery = residentsList;
@@ -73,7 +72,7 @@ namespace BarangayLangkiwaSystem.Controllers
             if (ModelState.IsValid)
             {
                 resident.DateRegistered = DateTime.Now;
-                await _client.From<Resident>().Insert(resident);
+                await InMemoryDataStore.From<Resident>().Insert(resident);
 
                 await LogActivity($"New resident registered: {resident.FirstName} {resident.LastName}", "bi-person-plus text-success");
 
@@ -84,7 +83,7 @@ namespace BarangayLangkiwaSystem.Controllers
 
         public async Task<IActionResult> Delete(int id)
         {
-            var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+            var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Get();
             var resident = response.Models.FirstOrDefault();
             if (resident == null) return NotFound();
             return View(resident);
@@ -94,12 +93,12 @@ namespace BarangayLangkiwaSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+            var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Get();
             var resident = response.Models.FirstOrDefault();
             if (resident != null)
             {
                 string fullName = $"{resident.FirstName} {resident.LastName}";
-                await _client.From<Resident>().Where(r => r.ResidentId == id).Delete();
+                await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Delete();
 
                 await LogActivity($"Resident record deleted: {fullName}", "bi-trash text-danger");
             }
@@ -108,7 +107,7 @@ namespace BarangayLangkiwaSystem.Controllers
 
         public async Task<IActionResult> View(int id)
         {
-            var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+            var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Get();
             var resident = response.Models.FirstOrDefault();
             if (resident == null) return NotFound();
             return View("ViewResident", resident);
@@ -116,7 +115,7 @@ namespace BarangayLangkiwaSystem.Controllers
 
         public async Task<IActionResult> Edit(int id)
         {
-            var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+            var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Get();
             var resident = response.Models.FirstOrDefault();
             if (resident == null) return NotFound();
             return View("EditResident", resident);
@@ -131,7 +130,7 @@ namespace BarangayLangkiwaSystem.Controllers
 
             if (ModelState.IsValid)
             {
-                var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+                var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Get();
                 var existingResident = response.Models.FirstOrDefault();
 
                 if (existingResident == null)
@@ -175,7 +174,7 @@ namespace BarangayLangkiwaSystem.Controllers
                     Icon = icon,
                     Timestamp = DateTime.Now
                 };
-                await _client.From<SystemActivity>().Insert(activity);
+                await InMemoryDataStore.From<SystemActivity>().Insert(activity);
             }
             catch (Exception) { /* Fail silently to prevent app crash */ }
         }

@@ -1,3 +1,4 @@
+using BarangayLangkiwaSystem.Data;
 using BarangayLangkiwaSystem.Models;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -9,11 +10,9 @@ namespace BarangayLangkiwaSystem.Controllers
 {
     public class HomeController : BaseController
     {
-        private readonly Supabase.Client _client;
 
-        public HomeController(Supabase.Client client)
+        public HomeController()
         {
-            _client = client;
         }
 
         public IActionResult AccessDenied()
@@ -46,10 +45,10 @@ namespace BarangayLangkiwaSystem.Controllers
                     break;
             }
 
-            var residentsResp = await _client.From<Resident>().Get();
-            var certLogsResp = await _client.From<CertificationLog>().Get();
-            var reportLogsResp = await _client.From<ReportLog>().Get();
-            var activitiesResp = await _client.From<SystemActivity>().Get();
+            var residentsResp = await InMemoryDataStore.From<Resident>().Get();
+            var certLogsResp = await InMemoryDataStore.From<CertificationLog>().Get();
+            var reportLogsResp = await InMemoryDataStore.From<ReportLog>().Get();
+            var activitiesResp = await InMemoryDataStore.From<SystemActivity>().Get();
 
             IEnumerable<Resident> residentsQuery = residentsResp.Models;
             IEnumerable<CertificationLog> certLogQuery = certLogsResp.Models;

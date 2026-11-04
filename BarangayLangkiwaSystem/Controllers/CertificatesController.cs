@@ -1,3 +1,4 @@
+using BarangayLangkiwaSystem.Data;
 using BarangayLangkiwaSystem.Models;
 using BarangayLangkiwaSystem.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -13,11 +14,9 @@ namespace BarangayLangkiwaSystem.Controllers
 {
     public class CertificatesController : BaseController
     {
-        private readonly Supabase.Client _client;
 
-        public CertificatesController(Supabase.Client client)
+        public CertificatesController()
         {
-            _client = client;
         }
 
         private int GetLoggedInUserId()
@@ -28,8 +27,8 @@ namespace BarangayLangkiwaSystem.Controllers
         public async Task<IActionResult> Index(string filter = "All")
         {
             DateTime now = DateTime.Now;
-            var certLogsResp = await _client.From<CertificationLog>().Get();
-            var certTypesResp = await _client.From<CertificationType>().Get();
+            var certLogsResp = await InMemoryDataStore.From<CertificationLog>().Get();
+            var certTypesResp = await InMemoryDataStore.From<CertificationType>().Get();
 
             var certLogs = certLogsResp.Models;
             var certTypes = certTypesResp.Models;
@@ -84,10 +83,10 @@ namespace BarangayLangkiwaSystem.Controllers
         {
             DateTime now = DateTime.Now;
 
-            var certLogsResp = await _client.From<CertificationLog>().Get();
-            var residentsResp = await _client.From<Resident>().Get();
-            var usersResp = await _client.From<UserAccounts>().Get();
-            var certTypesResp = await _client.From<CertificationType>().Get();
+            var certLogsResp = await InMemoryDataStore.From<CertificationLog>().Get();
+            var residentsResp = await InMemoryDataStore.From<Resident>().Get();
+            var usersResp = await InMemoryDataStore.From<UserAccounts>().Get();
+            var certTypesResp = await InMemoryDataStore.From<CertificationType>().Get();
 
             var certLogs = certLogsResp.Models;
             var residents = residentsResp.Models;
@@ -140,7 +139,7 @@ namespace BarangayLangkiwaSystem.Controllers
 
         public async Task<IActionResult> Create()
         {
-            var certTypesResp = await _client.From<CertificationType>().Get();
+            var certTypesResp = await InMemoryDataStore.From<CertificationType>().Get();
             var certificateTypes = certTypesResp.Models;
 
             if (certificateTypes == null || !certificateTypes.Any())
@@ -151,8 +150,8 @@ namespace BarangayLangkiwaSystem.Controllers
 
             ViewBag.CertificateTypes = certificateTypes;
 
-            var residentsResp = await _client.From<Resident>().Get();
-            var certRequestsResp = await _client.From<CertRequest>().Get();
+            var residentsResp = await InMemoryDataStore.From<Resident>().Get();
+            var certRequestsResp = await InMemoryDataStore.From<CertRequest>().Get();
 
             AllData vmAllData = new AllData
             {
@@ -166,7 +165,7 @@ namespace BarangayLangkiwaSystem.Controllers
         [HttpGet]
         public async Task<IActionResult> SearchResidents(string term)
         {
-            var residentsResp = await _client.From<Resident>().Get();
+            var residentsResp = await InMemoryDataStore.From<Resident>().Get();
             var residents = residentsResp.Models
                 .Where(r => (r.FirstName + " " + r.LastName).Contains(term, StringComparison.OrdinalIgnoreCase))
                 .Select(r => new
@@ -184,7 +183,7 @@ namespace BarangayLangkiwaSystem.Controllers
         [HttpGet]
         public async Task<IActionResult> GetResidentDetails(int id)
         {
-            var response = await _client.From<Resident>().Where(r => r.ResidentId == id).Get();
+            var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Get();
             var resident = response.Models.FirstOrDefault();
 
             if (resident == null) return NotFound();
@@ -216,7 +215,7 @@ namespace BarangayLangkiwaSystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                await _client.From<CertificationType>().Insert(model);
+                await InMemoryDataStore.From<CertificationType>().Insert(model);
                 return RedirectToAction(nameof(Index));
             }
             return View(model);
@@ -224,7 +223,7 @@ namespace BarangayLangkiwaSystem.Controllers
 
         public async Task<IActionResult> Details(int ResidentId)
         {
-            var response = await _client.From<Resident>().Where(r => r.ResidentId == ResidentId).Get();
+            var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == ResidentId).Get();
             var resident = response.Models.FirstOrDefault();
             var vm = new Resident() { ResidentId = ResidentId };
             return View(vm);
@@ -240,7 +239,7 @@ namespace BarangayLangkiwaSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(AllData vm)
         {
-            var response = await _client.From<Resident>().Where(r => r.ResidentId == vm.ResidentId).Get();
+            var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == vm.ResidentId).Get();
             var resident = response.Models.FirstOrDefault();
             if (resident == null) 
                 return NotFound();
@@ -269,13 +268,13 @@ namespace BarangayLangkiwaSystem.Controllers
         [HttpPost]
         public async Task<IActionResult> Approve(CertificateIssueVM vm)
         {
-            var resResp = await _client.From<Resident>().Where(r => r.ResidentId == vm.ResidentId).Get();
+            var resResp = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == vm.ResidentId).Get();
             var resident = resResp.Models.FirstOrDefault();
 
             if (resident == null)
                 return NotFound();
 
-            var typeResp = await _client.From<CertificationType>().Where(t => t.TypeName == vm.CertificateTypeName).Get();
+            var typeResp = await InMemoryDataStore.From<CertificationType>().Where(t => t.TypeName == vm.CertificateTypeName).Get();
             var type = typeResp.Models.FirstOrDefault();
 
             if (type == null)
@@ -292,7 +291,7 @@ namespace BarangayLangkiwaSystem.Controllers
                 reference_code = Guid.NewGuid().ToString()
             };
 
-            await _client.From<CertificationLog>().Insert(log);
+            await InMemoryDataStore.From<CertificationLog>().Insert(log);
 
             int daysofBeingaResident = (DateTime.Now - resident.DateRegistered).Days;
 
@@ -370,7 +369,7 @@ namespace BarangayLangkiwaSystem.Controllers
         [HttpPost]
         public async Task<IActionResult> Disapprove(CertificateIssueVM vm)
         {
-            var typeResp = await _client.From<CertificationType>().Where(t => t.TypeName == vm.CertificateTypeName).Get();
+            var typeResp = await InMemoryDataStore.From<CertificationType>().Where(t => t.TypeName == vm.CertificateTypeName).Get();
             var type = typeResp.Models.FirstOrDefault();
 
             if (type == null)
@@ -387,7 +386,7 @@ namespace BarangayLangkiwaSystem.Controllers
                 reference_code = Guid.NewGuid().ToString()
             };
 
-            await _client.From<CertificationLog>().Insert(log);
+            await InMemoryDataStore.From<CertificationLog>().Insert(log);
 
             return RedirectToAction("Index");
         }

@@ -1,3 +1,4 @@
+using BarangayLangkiwaSystem.Data;
 using Microsoft.AspNetCore.Mvc;
 using BarangayLangkiwaSystem.Models;
 using Microsoft.AspNetCore.Http;
@@ -7,11 +8,9 @@ namespace BarangayLangkiwaSystem.Controllers
 {
     public class AccountsController : Controller
     {
-        private readonly Supabase.Client _client;
 
-        public AccountsController(Supabase.Client client)
+        public AccountsController()
         {
-            _client = client;
         }
 
         public IActionResult Login()
@@ -26,7 +25,7 @@ namespace BarangayLangkiwaSystem.Controllers
             if (!ModelState.IsValid) 
                 return View(model);
 
-            var response = await _client.From<UserAccounts>()
+            var response = await InMemoryDataStore.From<UserAccounts>()
                 .Where(u => u.username == model.Email && u.is_active == true)
                 .Get();
 
@@ -63,7 +62,7 @@ namespace BarangayLangkiwaSystem.Controllers
             if (!ModelState.IsValid) 
                 return View(model);
 
-            var existingResponse = await _client.From<UserAccounts>()
+            var existingResponse = await InMemoryDataStore.From<UserAccounts>()
                 .Where(u => u.username == model.username)
                 .Get();
 
@@ -78,7 +77,7 @@ namespace BarangayLangkiwaSystem.Controllers
             model.password = BCrypt.Net.BCrypt.HashPassword(model.password);
             model.is_active = true;
 
-            await _client.From<UserAccounts>().Insert(model);
+            await InMemoryDataStore.From<UserAccounts>().Insert(model);
 
             return RedirectToAction("Login");
         }
