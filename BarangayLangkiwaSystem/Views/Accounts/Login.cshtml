@@ -7,26 +7,47 @@
 
 <div class="card border-0 shadow-lg p-4 p-md-5 rounded-4 bg-white">
     <h3 class="fw-bold text-center mb-4 text-dark">Sign In</h3>
-    <form asp-action="Login" method="post">
+    <form asp-action="Login" method="post" id="loginForm">
         <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
 
         <div class="mb-3">
             <label asp-for="Email" class="form-label small fw-bold"></label>
-            <input asp-for="Email" class="form-control" placeholder="admin@langkiwa.gov.ph" />
+            <input asp-for="Email" id="Email" class="form-control" placeholder="admin@langkiwa.gov.ph" />
             <span asp-validation-for="Email" class="text-danger small"></span>
         </div>
 
         <div class="mb-3">
             <label asp-for="Password" class="form-label small fw-bold"></label>
-            <input asp-for="Password" class="form-control" type="password" />
+            <input asp-for="Password" id="Password" class="form-control" type="password" />
             <span asp-validation-for="Password" class="text-danger small"></span>
         </div>
 
         <button type="submit" class="btn btn-success w-100 fw-bold py-2">Sign In</button>
     </form>
-    <div class="mt-3 text-center small text-muted">
-        Test: admin@langkiwa.gov.ph / Password123
+
+    <div class="mt-4 pt-3 border-top">
+        <p class="text-muted small text-center mb-2 fw-bold">Quick Login (Demo Mode)</p>
+        <div class="d-grid gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="autoLogin('clerk@langkiwa.gov.ph', 'Password123')">
+                <i class="bi bi-person me-1"></i> Login as Clerk
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="autoLogin('secretary@langkiwa.gov.ph', 'Password123')">
+                <i class="bi bi-person-badge me-1"></i> Login as Secretary
+            </button>
+            <button type="button" class="btn btn-outline-success btn-sm" onclick="autoLogin('captain@langkiwa.gov.ph', 'Password123')">
+                <i class="bi bi-star me-1"></i> Login as Barangay Captain
+            </button>
+        </div>
     </div>
+
+    <script>
+        function autoLogin(email, password) {
+            // Adjust the element IDs if your input fields use different names (e.g., 'EmailAddress' instead of 'Email')
+            document.getElementById('Email').value = email;
+            document.getElementById('Password').value = password;
+            document.getElementById('loginForm').submit();
+        }
+    </script>
 </div>
 
 <div class="modal fade" id="portfolioNoticeModal" tabindex="-1" aria-labelledby="portfolioNoticeLabel" aria-hidden="true">
