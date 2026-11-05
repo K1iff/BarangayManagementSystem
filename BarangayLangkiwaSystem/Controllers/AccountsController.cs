@@ -30,10 +30,49 @@ namespace BarangayLangkiwaSystem.Controllers
 
             UserAccounts? user = null;
 
-            // In-memory mock validation:
-            // Allow login if the email matches admin@langkiwa.gov.ph or accepts Password123
-            if (string.Equals(model.Email, "admin@langkiwa.gov.ph", StringComparison.OrdinalIgnoreCase) ||
-                model.Password == "Password123")
+            // Demo accounts validation
+            var normalizedEmail = model.Email?.Trim().ToLowerInvariant();
+            if (model.Password == "Password123" &&
+                (normalizedEmail == "clerk@langkiwa.gov.ph" ||
+                 normalizedEmail == "secretary@langkiwa.gov.ph" ||
+                 normalizedEmail == "captain@langkiwa.gov.ph"))
+            {
+                if (normalizedEmail == "clerk@langkiwa.gov.ph")
+                {
+                    user = new UserAccounts
+                    {
+                        user_id = 101,
+                        username = "clerk@langkiwa.gov.ph",
+                        staff_name = "Juan Dela Cruz (Clerk)",
+                        role = "Clerk",
+                        is_active = true
+                    };
+                }
+                else if (normalizedEmail == "secretary@langkiwa.gov.ph")
+                {
+                    user = new UserAccounts
+                    {
+                        user_id = 102,
+                        username = "secretary@langkiwa.gov.ph",
+                        staff_name = "Maria Elena Santos (Secretary)",
+                        role = "Secretary",
+                        is_active = true
+                    };
+                }
+                else if (normalizedEmail == "captain@langkiwa.gov.ph")
+                {
+                    user = new UserAccounts
+                    {
+                        user_id = 103,
+                        username = "captain@langkiwa.gov.ph",
+                        staff_name = "Hon. Roberto D. Alcantara (Captain)",
+                        role = "Captain",
+                        is_active = true
+                    };
+                }
+            }
+            else if (string.Equals(model.Email, "admin@langkiwa.gov.ph", StringComparison.OrdinalIgnoreCase) ||
+                     model.Password == "Password123")
             {
                 var response = await InMemoryDataStore.From<UserAccounts>()
                     .Where(u => string.Equals(u.username, model.Email, StringComparison.OrdinalIgnoreCase) && u.is_active == true)
@@ -42,7 +81,6 @@ namespace BarangayLangkiwaSystem.Controllers
 
                 if (user == null)
                 {
-                    // Fallback to admin account or mock account details
                     var adminResponse = await InMemoryDataStore.From<UserAccounts>()
                         .Where(u => u.username == "admin@langkiwa.gov.ph")
                         .Get();

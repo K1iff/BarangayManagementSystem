@@ -111,8 +111,8 @@ namespace BarangayLangkiwaSystem.Data
                     user_id = 2,
                     username = "captain@langkiwa.gov.ph",
                     password = "$2a$11$X0UqQWcZ6w47cK5fM4tJge0jP1kQ2lR3mS4nT5oU6pV7qW8rS9tU.",
-                    staff_name = "Hon. Roberto D. Alcantara",
-                    role = "Barangay Captain",
+                    staff_name = "Hon. Roberto D. Alcantara (Captain)",
+                    role = "Captain",
                     is_active = true
                 },
                 new UserAccounts
@@ -141,6 +141,24 @@ namespace BarangayLangkiwaSystem.Data
                     staff_name = "Ricardo P. Gomez",
                     role = "Barangay Staff",
                     is_active = false
+                },
+                new UserAccounts
+                {
+                    user_id = 101,
+                    username = "clerk@langkiwa.gov.ph",
+                    password = "$2a$11$X0UqQWcZ6w47cK5fM4tJge0jP1kQ2lR3mS4nT5oU6pV7qW8rS9tU.",
+                    staff_name = "Juan Dela Cruz (Clerk)",
+                    role = "Clerk",
+                    is_active = true
+                },
+                new UserAccounts
+                {
+                    user_id = 102,
+                    username = "secretary@langkiwa.gov.ph",
+                    password = "$2a$11$X0UqQWcZ6w47cK5fM4tJge0jP1kQ2lR3mS4nT5oU6pV7qW8rS9tU.",
+                    staff_name = "Maria Elena Santos (Secretary)",
+                    role = "Secretary",
+                    is_active = true
                 }
             });
 
