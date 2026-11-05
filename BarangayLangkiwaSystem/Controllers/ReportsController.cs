@@ -20,6 +20,7 @@ namespace BarangayLangkiwaSystem.Controllers
             var role = HttpContext.Session.GetString("Role");
 
             return role == "Barangay Captain"
+                || role == "Barangay Secretary"
                 || role == "Secretary";
         }
 

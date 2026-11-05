@@ -225,8 +225,8 @@ namespace BarangayLangkiwaSystem.Controllers
         {
             var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == ResidentId).Get();
             var resident = response.Models.FirstOrDefault();
-            var vm = new Resident() { ResidentId = ResidentId };
-            return View(vm);
+            if (resident == null) return NotFound();
+            return View(resident);
         }
 
         [HttpGet]
