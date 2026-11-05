@@ -1,4 +1,4 @@
-# Web-Based Resident and Certification Management System for Barangay Langkiwa
+# Barangay Information Management System
 
 ## Project Overview
 This project is a web-based solution designed to automate resident profiling and the issuance of certifications for Barangay Langkiwa. It was developed to transition the barangay from inefficient manual and spreadsheet-based recording to a modern, centralized digital platform. The system aims to centralize records, reduce manual workloads, and significantly enhance data integrity and security.
