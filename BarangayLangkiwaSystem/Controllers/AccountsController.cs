@@ -109,37 +109,5 @@ namespace BarangayLangkiwaSystem.Controllers
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
         }
-
-        public IActionResult Register()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(UserAccounts model)
-        {
-            if (!ModelState.IsValid) 
-                return View(model);
-
-            var existingResponse = await InMemoryDataStore.From<UserAccounts>()
-                .Where(u => u.username == model.username)
-                .Get();
-
-            var existingUser = existingResponse.Models.FirstOrDefault();
-
-            if (existingUser != null)
-            {
-                ModelState.AddModelError("", "Username already exists.");
-                return View(model);
-            }
-
-            model.password = BCrypt.Net.BCrypt.HashPassword(model.password);
-            model.is_active = true;
-
-            await InMemoryDataStore.From<UserAccounts>().Insert(model);
-
-            return RedirectToAction("Login");
-        }
     }
 }
