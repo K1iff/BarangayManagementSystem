@@ -10,6 +10,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.LoginPath = "/Accounts/Login";
         options.LogoutPath = "/Accounts/Logout";
+        options.AccessDeniedPath = "/Home/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
     });
@@ -29,6 +30,10 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
+}
+else
+{
+    app.UseExceptionHandler("/Home/Error");
 }
 
 app.UseHttpsRedirection();

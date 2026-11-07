@@ -142,8 +142,52 @@
                 </table>
             </div>
         </div>
-        <div class="card-footer bg-white py-3 border-0 text-end">
-            <small class="text-muted pe-3">Page 1 of 300</small>
+        <div class="card-footer bg-white py-3 border-0">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted ps-2">
+                    Showing @(Model.Count > 0 ? (ViewBag.CurrentPage - 1) * ViewBag.PageSize + 1 : 0) to @Math.Min((int)ViewBag.CurrentPage * (int)ViewBag.PageSize, (int)ViewBag.TotalCount) of @ViewBag.TotalCount residents
+                </small>
+
+                <nav aria-label="Residents pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(ViewBag.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-page="@(ViewBag.CurrentPage - 1)"
+                               asp-route-searchString="@ViewBag.SearchString"
+                               asp-route-filter="@ViewBag.Filter"
+                               asp-route-pageSize="@ViewBag.PageSize">
+                                <i class="bi bi-chevron-left me-1"></i>Previous
+                            </a>
+                        </li>
+
+                        @for (int p = 1; p <= (int)ViewBag.TotalPages; p++)
+                        {
+                            <li class="page-item @(p == (int)ViewBag.CurrentPage ? "active" : "")">
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-page="@p"
+                                   asp-route-searchString="@ViewBag.SearchString"
+                                   asp-route-filter="@ViewBag.Filter"
+                                   asp-route-pageSize="@ViewBag.PageSize">
+                                    @p
+                                </a>
+                            </li>
+                        }
+
+                        <li class="page-item @(ViewBag.HasNextPage ? "" : "disabled")">
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-page="@(ViewBag.CurrentPage + 1)"
+                               asp-route-searchString="@ViewBag.SearchString"
+                               asp-route-filter="@ViewBag.Filter"
+                               asp-route-pageSize="@ViewBag.PageSize">
+                                Next<i class="bi bi-chevron-right ms-1"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
         </div>
     </div>
 </div>

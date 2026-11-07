@@ -4,8 +4,11 @@ using BarangayLangkiwaSystem.Models;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace BarangayLangkiwaSystem.Controllers
 {
+    [Authorize(Roles = "Barangay Captain, Captain")]
     public class UserManagementController : BaseController
     {
 
