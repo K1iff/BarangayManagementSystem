@@ -4,10 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BarangayLangkiwaSystem.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarangayLangkiwaSystem.Controllers
 {
+    [Authorize(Roles = "Barangay Captain, Barangay Secretary, Secretary, Captain")]
     public class ReportsController : BaseController
     {
 
@@ -15,29 +17,9 @@ namespace BarangayLangkiwaSystem.Controllers
         {
         }
 
-        private bool IsAdmin()
-        {
-            var role = HttpContext.Session.GetString("Role");
-
-            return role == "Barangay Captain"
-                || role == "Barangay Secretary"
-                || role == "Secretary";
-        }
-
         private int GetLoggedInUserId()
         {
             return HttpContext.Session.GetInt32("UserId") ?? 0;
-        }
-
-        public override void OnActionExecuting(Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext context)
-        {
-            if (!IsAdmin())
-            {
-                context.Result = RedirectToAction("AccessDenied", "Home");
-                return;
-            }
-
-            base.OnActionExecuting(context);
         }
 
         public async Task<IActionResult> Index()

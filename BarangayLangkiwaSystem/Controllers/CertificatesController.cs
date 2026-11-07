@@ -10,13 +10,17 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Microsoft.AspNetCore.Hosting;
+
 namespace BarangayLangkiwaSystem.Controllers
 {
     public class CertificatesController : BaseController
     {
+        private readonly IWebHostEnvironment _environment;
 
-        public CertificatesController()
+        public CertificatesController(IWebHostEnvironment environment)
         {
+            _environment = environment;
         }
 
         private int GetLoggedInUserId()
@@ -24,14 +28,16 @@ namespace BarangayLangkiwaSystem.Controllers
             return HttpContext.Session.GetInt32("UserId") ?? 0;
         }
 
-        public async Task<IActionResult> Index(string filter = "All")
+        public async Task<IActionResult> Index(string filter = "All", int page = 1, int pageSize = 10)
         {
             DateTime now = DateTime.Now;
             var certLogsResp = await InMemoryDataStore.From<CertificationLog>().Get();
             var certTypesResp = await InMemoryDataStore.From<CertificationType>().Get();
+            var residentsResp = await InMemoryDataStore.From<Resident>().Get();
 
             var certLogs = certLogsResp.Models;
             var certTypes = certTypesResp.Models;
+            var residents = residentsResp.Models;
 
             IEnumerable<CertificationLog> certQuery = certLogs;
 
@@ -53,7 +59,7 @@ namespace BarangayLangkiwaSystem.Controllers
                     break;
             }
 
-            var filteredLogs = certQuery.ToList();
+            var filteredLogs = certQuery.OrderByDescending(r => r.date_issued).ToList();
 
             var chartData = filteredLogs
                 .Join(certTypes,
@@ -75,8 +81,41 @@ namespace BarangayLangkiwaSystem.Controllers
             ViewBag.Approved = filteredLogs.Count(r => r.status == "Approved");
             ViewBag.Released = filteredLogs.Count(r => r.status == "Approved");
             ViewBag.Total = filteredLogs.Count;
+
+            // Pagination calculations
+            if (page < 1) page = 1;
+            if (pageSize < 5) pageSize = 10;
+
+            int totalCount = filteredLogs.Count;
+            int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+            if (totalPages == 0) totalPages = 1;
+            if (page > totalPages) page = totalPages;
+
+            var paginatedLogs = filteredLogs.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            // Populate navigation resident / type helpers for view
+            foreach (var log in paginatedLogs)
+            {
+                if (string.IsNullOrEmpty(log.IssuedBy))
+                {
+                    var r = residents.FirstOrDefault(res => res.ResidentId == log.resident_id);
+                    if (r != null) log.IssuedBy = $"{r.FirstName} {r.LastName}";
+                }
+                if (string.IsNullOrEmpty(log.ReferenceCode) || log.ReferenceCode.StartsWith("BC-") || Guid.TryParse(log.ReferenceCode, out _))
+                {
+                    var t = certTypes.FirstOrDefault(ct => ct.TypeId == log.type_id);
+                    if (t != null) log.ReferenceCode = t.TypeName;
+                }
+            }
+
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalCount = totalCount;
+            ViewBag.HasPreviousPage = page > 1;
+            ViewBag.HasNextPage = page < totalPages;
                 
-            return View(filteredLogs.OrderByDescending(r => r.date_issued).ToList());
+            return View(paginatedLogs);
         }
 
         public async Task<IActionResult> ViewLog(string filter = "All", int? typeId = null, string searchString = "")
@@ -239,10 +278,42 @@ namespace BarangayLangkiwaSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(AllData vm)
         {
+            if (vm.ResidentId <= 0)
+            {
+                ModelState.AddModelError("ResidentId", "Please select a valid resident.");
+            }
+            if (string.IsNullOrWhiteSpace(vm.CertificateTypeName))
+            {
+                ModelState.AddModelError("CertificateTypeName", "Certificate type is required.");
+            }
+            if (string.IsNullOrWhiteSpace(vm.Purpose))
+            {
+                ModelState.AddModelError("Purpose", "Purpose is required.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var certTypesResp = await InMemoryDataStore.From<CertificationType>().Get();
+                ViewBag.CertificateTypes = certTypesResp.Models;
+
+                var residentsResp = await InMemoryDataStore.From<Resident>().Get();
+                var certRequestsResp = await InMemoryDataStore.From<CertRequest>().Get();
+
+                vm.Residents = residentsResp.Models;
+                vm.CertificateRequests = certRequestsResp.Models;
+
+                return View("Create", vm);
+            }
+
             var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == vm.ResidentId).Get();
             var resident = response.Models.FirstOrDefault();
             if (resident == null) 
-                return NotFound();
+            {
+                ModelState.AddModelError("ResidentId", "Selected resident was not found.");
+                var certTypesResp = await InMemoryDataStore.From<CertificationType>().Get();
+                ViewBag.CertificateTypes = certTypesResp.Models;
+                return View("Create", vm);
+            }
 
             int residencyDuration = (DateTime.Now - resident.DateRegistered).Days;
 
@@ -268,102 +339,150 @@ namespace BarangayLangkiwaSystem.Controllers
         [HttpPost]
         public async Task<IActionResult> Approve(CertificateIssueVM vm)
         {
-            var resResp = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == vm.ResidentId).Get();
-            var resident = resResp.Models.FirstOrDefault();
-
-            if (resident == null)
-                return NotFound();
-
-            var typeResp = await InMemoryDataStore.From<CertificationType>().Where(t => t.TypeName == vm.CertificateTypeName).Get();
-            var type = typeResp.Models.FirstOrDefault();
-
-            if (type == null)
-                return NotFound();
-
-            var log = new CertificationLog
+            try
             {
-                resident_id = vm.ResidentId,
-                type_id = type.TypeId,
-                purpose = vm.Purpose,
-                date_issued = DateTime.Now,
-                status = "Approved",
-                issued_by = GetLoggedInUserId(),
-                reference_code = Guid.NewGuid().ToString()
-            };
+                var resResp = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == vm.ResidentId).Get();
+                var resident = resResp.Models.FirstOrDefault();
 
-            await InMemoryDataStore.From<CertificationLog>().Insert(log);
-
-            int daysofBeingaResident = (DateTime.Now - resident.DateRegistered).Days;
-
-            string templatePath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                "templates",
-                vm.CertificateTypeName + "Template.docx"
-            );
-
-            string generatedFolder = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                "generated"
-            );
-
-            if (!Directory.Exists(generatedFolder))
-                Directory.CreateDirectory(generatedFolder);
-
-            string fileName = $"{vm.CertificateTypeName}_{log.reference_code}.docx";
-            string newFilePath = Path.Combine(generatedFolder, fileName);
-
-            System.IO.File.Copy(templatePath, newFilePath, true);
-
-            string staffName = HttpContext.Session.GetString("Username") ?? "Barangay Staff";
-            string staffRole = HttpContext.Session.GetString("Role") ?? "Staff";
-
-            using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(newFilePath, true))
-            {
-                var body = wordDoc.MainDocumentPart?.Document.Body;
-                if (body != null)
+                if (resident == null)
                 {
-                    foreach (var para in body.Descendants<Paragraph>())
-                    {
-                        var runs = para.Elements<Run>().ToList();
-                        if (!runs.Any()) continue;
-
-                        string combinedText = string.Concat(runs.Select(r => string.Concat(r.Elements<Text>().Select(t => t.Text))));
-
-                        if (combinedText.Contains("[Name]") || combinedText.Contains("[Purpose]") ||
-                            combinedText.Contains("[Date]") || combinedText.Contains("[Address]") ||
-                            combinedText.Contains("[StaffName]") || combinedText.Contains("[role]") ||
-                            combinedText.Contains("[DaysofBeingaResident]"))
-                        {
-                            combinedText = combinedText.Replace("[Name]", resident.FirstName + " " + resident.LastName)
-                                                       .Replace("[Purpose]", vm.Purpose)
-                                                       .Replace("[Date]", DateTime.Now.ToString("MMMM dd, yyyy"))
-                                                       .Replace("[Address]", resident.Address)
-                                                       .Replace("[StaffName]", staffName)
-                                                       .Replace("[role]", staffRole)
-                                                       .Replace("[DaysofBeingaResident]",
-                                                            daysofBeingaResident >= 365 ? $"{daysofBeingaResident / 365} year(s)" :
-                                                            daysofBeingaResident >= 30 ? $"{daysofBeingaResident / 30} month(s)" :
-                                                            daysofBeingaResident >= 7 ? $"{daysofBeingaResident / 7} week(s)" :
-                                                            $"{daysofBeingaResident} day(s)");
-
-                            para.RemoveAllChildren<Run>();
-
-                            Run newRun = new Run(new Text(combinedText));
-                            para.Append(newRun);
-                        }
-                    }
-
-                    wordDoc.MainDocumentPart.Document.Save();
+                    TempData["ErrorMessage"] = "Resident record not found.";
+                    return RedirectToAction("Index");
                 }
-            }
 
-            return File(
-                System.IO.File.ReadAllBytes(newFilePath),
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                fileName
-            );
+                var typeResp = await InMemoryDataStore.From<CertificationType>().Where(t => t.TypeName == vm.CertificateTypeName).Get();
+                var type = typeResp.Models.FirstOrDefault();
+
+                if (type == null)
+                {
+                    TempData["ErrorMessage"] = $"Certificate type '{vm.CertificateTypeName}' was not found.";
+                    return RedirectToAction("Index");
+                }
+
+                var allLogs = await InMemoryDataStore.From<CertificationLog>().Get();
+                int nextCertId = allLogs.Models.Any() ? allLogs.Models.Max(c => c.CertId) + 1 : 101;
+
+                var log = new CertificationLog
+                {
+                    CertId = nextCertId,
+                    resident_id = vm.ResidentId,
+                    type_id = type.TypeId,
+                    purpose = vm.Purpose ?? "General Purpose",
+                    date_issued = DateTime.Now,
+                    status = "Approved",
+                    issued_by = GetLoggedInUserId(),
+                    reference_code = Guid.NewGuid().ToString(),
+                    IssuedBy = $"{resident.FirstName} {resident.LastName}",
+                    ReferenceCode = type.TypeName
+                };
+
+                await InMemoryDataStore.From<CertificationLog>().Insert(log);
+
+                // Update corresponding pending request if exists
+                var pendingReqResp = await InMemoryDataStore.From<CertRequest>()
+                    .Where(r => r.ResidentId == vm.ResidentId && r.CertificateType == vm.CertificateTypeName && r.Status == "Pending")
+                    .Get();
+                var matchingReq = pendingReqResp.Models.FirstOrDefault();
+                if (matchingReq != null)
+                {
+                    matchingReq.Status = "Completed";
+                    await matchingReq.Update<CertRequest>();
+                }
+
+                int daysofBeingaResident = (DateTime.Now - resident.DateRegistered).Days;
+
+                // Robust WebRootPath resolution for MonsterASP.NET IIS hosting
+                string webRoot = _environment.WebRootPath;
+                if (string.IsNullOrEmpty(webRoot))
+                {
+                    webRoot = Path.Combine(_environment.ContentRootPath ?? AppContext.BaseDirectory, "wwwroot");
+                }
+
+                string templatePath = Path.Combine(webRoot, "templates", vm.CertificateTypeName + "Template.docx");
+
+                // Fallback check: if specific template doesn't exist, try Clearance or any docx template
+                if (!System.IO.File.Exists(templatePath))
+                {
+                    string fallbackTemplate = Path.Combine(webRoot, "templates", "Barangay ClearanceTemplate.docx");
+                    if (System.IO.File.Exists(fallbackTemplate))
+                    {
+                        templatePath = fallbackTemplate;
+                    }
+                    else
+                    {
+                        TempData["ErrorMessage"] = $"Template file for '{vm.CertificateTypeName}' could not be located in templates folder.";
+                        return RedirectToAction("Index");
+                    }
+                }
+
+                string generatedFolder = Path.Combine(webRoot, "generated");
+                if (!Directory.Exists(generatedFolder))
+                {
+                    Directory.CreateDirectory(generatedFolder);
+                }
+
+                string fileName = $"{vm.CertificateTypeName}_{log.reference_code}.docx";
+                string newFilePath = Path.Combine(generatedFolder, fileName);
+
+                System.IO.File.Copy(templatePath, newFilePath, true);
+
+                string staffName = HttpContext.Session.GetString("Username") ?? "Barangay Staff";
+                string staffRole = HttpContext.Session.GetString("Role") ?? "Staff";
+
+                using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(newFilePath, true))
+                {
+                    var body = wordDoc.MainDocumentPart?.Document.Body;
+                    if (body != null)
+                    {
+                        foreach (var para in body.Descendants<Paragraph>())
+                        {
+                            var runs = para.Elements<Run>().ToList();
+                            if (!runs.Any()) continue;
+
+                            string combinedText = string.Concat(runs.Select(r => string.Concat(r.Elements<Text>().Select(t => t.Text))));
+
+                            if (combinedText.Contains("[Name]") || combinedText.Contains("[Purpose]") ||
+                                combinedText.Contains("[Date]") || combinedText.Contains("[Address]") ||
+                                combinedText.Contains("[StaffName]") || combinedText.Contains("[role]") ||
+                                combinedText.Contains("[DaysofBeingaResident]"))
+                            {
+                                combinedText = combinedText.Replace("[Name]", resident.FirstName + " " + resident.LastName)
+                                                           .Replace("[Purpose]", vm.Purpose)
+                                                           .Replace("[Date]", DateTime.Now.ToString("MMMM dd, yyyy"))
+                                                           .Replace("[Address]", resident.Address)
+                                                           .Replace("[StaffName]", staffName)
+                                                           .Replace("[role]", staffRole)
+                                                           .Replace("[DaysofBeingaResident]",
+                                                                daysofBeingaResident >= 365 ? $"{daysofBeingaResident / 365} year(s)" :
+                                                                daysofBeingaResident >= 30 ? $"{daysofBeingaResident / 30} month(s)" :
+                                                                daysofBeingaResident >= 7 ? $"{daysofBeingaResident / 7} week(s)" :
+                                                                $"{daysofBeingaResident} day(s)");
+
+                                para.RemoveAllChildren<Run>();
+
+                                Run newRun = new Run(new Text(combinedText));
+                                para.Append(newRun);
+                            }
+                        }
+
+                        wordDoc.MainDocumentPart.Document.Save();
+                    }
+                }
+
+                byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(newFilePath);
+                TempData["Success"] = $"Certificate '{vm.CertificateTypeName}' successfully approved and generated!";
+
+                return File(
+                    fileBytes,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    fileName
+                );
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Failed to generate document: {ex.Message}";
+                return RedirectToAction("Index");
+            }
         }
 
         [HttpPost]

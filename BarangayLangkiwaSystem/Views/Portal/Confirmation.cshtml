@@ -1,0 +1,50 @@
+@model BarangayLangkiwaSystem.Models.CertRequest
+
+@{
+    ViewData["Title"] = "Request Submitted Successfully";
+    Layout = "_AuthLayout";
+}
+
+<div class="card border-0 shadow-lg p-4 p-md-5 rounded-4 bg-white text-center">
+    <div class="rounded-circle bg-success bg-opacity-10 text-success mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+        <i class="bi bi-check-circle-fill fs-2"></i>
+    </div>
+    <h3 class="fw-bold text-dark mb-1">Request Received!</h3>
+    <p class="text-muted small mb-4">Your certificate application has been submitted to the Barangay Langkiwa records system.</p>
+
+    <div class="card bg-light border-0 p-3 mb-4 text-start small">
+        <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+            <span class="text-muted">Tracking Code:</span>
+            <span class="fw-bold text-primary">REQ-@Model.RequestId.ToString("D4")</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Resident Name:</span>
+            <span class="fw-bold text-dark">@Model.ResidentName</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Certificate Type:</span>
+            <span class="fw-bold text-dark">@Model.CertificateType</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Purpose:</span>
+            <span class="fw-bold text-dark">@Model.Purpose</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Date Submitted:</span>
+            <span>@Model.RequestDate.ToString("MMMM dd, yyyy hh:mm tt")</span>
+        </div>
+        <div class="d-flex justify-content-between">
+            <span class="text-muted">Status:</span>
+            <span class="badge bg-warning text-dark px-2 py-1">@Model.Status</span>
+        </div>
+    </div>
+
+    <div class="d-grid gap-2">
+        <a asp-action="Index" class="btn btn-primary fw-bold py-2 shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> Submit Another Request
+        </a>
+        <a asp-controller="Accounts" asp-action="Login" class="btn btn-outline-secondary btn-sm py-2">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Return to Staff Sign In
+        </a>
+    </div>
+</div>

@@ -15,7 +15,7 @@ namespace BarangayLangkiwaSystem.Controllers
         {
         }
 
-        public async Task<IActionResult> Index(string searchString, string filter = "All")
+        public async Task<IActionResult> Index(string searchString, string filter = "All", int page = 1, int pageSize = 10)
         {
             DateTime now = DateTime.Now;
             var response = await InMemoryDataStore.From<Resident>().Get();
@@ -53,14 +53,32 @@ namespace BarangayLangkiwaSystem.Controllers
             ViewBag.Filter = filter;
             ViewBag.SearchString = searchString;
 
-            var residents = residentsQuery.ToList();
+            var filteredResidents = residentsQuery.OrderBy(r => r.LastName).ThenBy(r => r.FirstName).ToList();
 
-            ViewBag.TotalRegistered = residents.Count;
-            ViewBag.ActiveVoters = residents.Count(r => r.Age >= 18);
-            ViewBag.NewResidents = residents.Count(r => r.DateRegistered >= DateTime.Today.AddMonths(-1));
-            ViewBag.TotalHouseholds = residents.Select(r => r.Address).Where(a => !string.IsNullOrEmpty(a)).Distinct().Count();
+            ViewBag.TotalRegistered = filteredResidents.Count;
+            ViewBag.ActiveVoters = filteredResidents.Count(r => r.Age >= 18);
+            ViewBag.NewResidents = filteredResidents.Count(r => r.DateRegistered >= DateTime.Today.AddMonths(-1));
+            ViewBag.TotalHouseholds = filteredResidents.Select(r => r.Address).Where(a => !string.IsNullOrEmpty(a)).Distinct().Count();
 
-            return View(residents);
+            // Pagination calculations
+            if (page < 1) page = 1;
+            if (pageSize < 5) pageSize = 10;
+
+            int totalCount = filteredResidents.Count;
+            int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+            if (totalPages == 0) totalPages = 1;
+            if (page > totalPages) page = totalPages;
+
+            var paginatedResidents = filteredResidents.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalCount = totalCount;
+            ViewBag.HasPreviousPage = page > 1;
+            ViewBag.HasNextPage = page < totalPages;
+
+            return View(paginatedResidents);
         }
 
         public IActionResult Register() => View();
@@ -71,10 +89,14 @@ namespace BarangayLangkiwaSystem.Controllers
         {
             if (ModelState.IsValid)
             {
+                var allRes = await InMemoryDataStore.From<Resident>().Get();
+                int nextId = allRes.Models.Any() ? allRes.Models.Max(r => r.ResidentId) + 1 : 1;
+                resident.ResidentId = nextId;
                 resident.DateRegistered = DateTime.Now;
                 await InMemoryDataStore.From<Resident>().Insert(resident);
 
                 await LogActivity($"New resident registered: {resident.FirstName} {resident.LastName}", "bi-person-plus text-success");
+                TempData["Success"] = $"Resident '{resident.FirstName} {resident.LastName}' registered successfully.";
 
                 return RedirectToAction(nameof(Index));
             }
@@ -93,15 +115,28 @@ namespace BarangayLangkiwaSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Get();
-            var resident = response.Models.FirstOrDefault();
-            if (resident != null)
+            try
             {
-                string fullName = $"{resident.FirstName} {resident.LastName}";
-                await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Delete();
+                var response = await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Get();
+                var resident = response.Models.FirstOrDefault();
+                if (resident != null)
+                {
+                    string fullName = $"{resident.FirstName} {resident.LastName}";
+                    await InMemoryDataStore.From<Resident>().Where(r => r.ResidentId == id).Delete();
 
-                await LogActivity($"Resident record deleted: {fullName}", "bi-trash text-danger");
+                    await LogActivity($"Resident record deleted: {fullName}", "bi-trash text-danger");
+                    TempData["Success"] = $"Resident '{fullName}' was deleted successfully.";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Resident record not found.";
+                }
             }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"An error occurred while deleting resident: {ex.Message}";
+            }
+
             return RedirectToAction(nameof(Index));
         }
 
@@ -155,6 +190,7 @@ namespace BarangayLangkiwaSystem.Controllers
                 await existingResident.Update<Resident>();
 
                 await LogActivity($"Resident record updated: {resident.FirstName} {resident.LastName}", "bi-pencil-square text-primary");
+                TempData["Success"] = $"Resident '{resident.FirstName} {resident.LastName}' updated successfully.";
 
                 return RedirectToAction(nameof(Index));
             }

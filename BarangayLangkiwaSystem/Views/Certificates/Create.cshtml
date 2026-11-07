@@ -30,16 +30,20 @@
         <div class="col-md-5">
             <div class="card border-0 shadow-sm p-4 h-100">
                 <h5 class="fw-bold mb-4">Certificate Details</h5>
-                <form asp-action="Register" method="post">
+                <form asp-action="Register" method="post" id="createCertForm">
                     @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Search Resident *</label>
                         <input type="text"
                                id="ResidentSearch"
                                class="form-control bg-light border-0"
-                               placeholder="Type resident name..." />
+                               placeholder="Type resident name..."
+                               value="@Model.ResidentFullName" />
                         <!-- IMPORTANT: this is what gets submitted -->
-                        <input type="hidden" id="ResidentId" name="ResidentId" />
+                        <input type="hidden" id="ResidentId" name="ResidentId" value="@(Model.ResidentId > 0 ? Model.ResidentId.ToString() : "")" />
+                        <span class="text-danger small" id="valResidentId">@Html.ValidationMessage("ResidentId")</span>
                     </div>
                     <div class="row mb-3">
                         <div class="col">
@@ -59,15 +63,20 @@
                         <label class="form-label small fw-bold">Certificate Type *</label>
                         <select id="CertTypeSelect" name="CertificateTypeName" class="form-select bg-light border-0">
                             <option value="">Select certificate type</option>
-                            @foreach (var type in ViewBag.CertificateTypes)
+                            @if (ViewBag.CertificateTypes != null)
                             {
-                                <option value="@type.TypeName">@type.TypeName</option>
+                                foreach (var type in ViewBag.CertificateTypes)
+                                {
+                                    <option value="@type.TypeName" selected="@(Model.CertificateTypeName == type.TypeName)">@type.TypeName</option>
+                                }
                             }
                         </select>
+                        <span class="text-danger small" id="valCertType">@Html.ValidationMessage("CertificateTypeName")</span>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Purpose *</label>
-                        <textarea id="InputPurpose" name="Purpose" class="form-control bg-light border-0" rows="3" placeholder="Enter purpose"></textarea>
+                        <textarea id="InputPurpose" name="Purpose" class="form-control bg-light border-0" rows="3" placeholder="Enter purpose">@Model.Purpose</textarea>
+                        <span class="text-danger small" id="valPurpose">@Html.ValidationMessage("Purpose")</span>
                     </div>
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-2"></i>Issue Certificate</button>

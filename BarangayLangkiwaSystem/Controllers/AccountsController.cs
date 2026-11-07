@@ -7,8 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 using BarangayLangkiwaSystem.Models;
 using BCrypt.Net;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace BarangayLangkiwaSystem.Controllers
 {
+    [AllowAnonymous]
     public class AccountsController : Controller
     {
 

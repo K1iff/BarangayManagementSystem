@@ -19,7 +19,7 @@
 
     <div class="mt-4" id ="action-buttons">
         <!-- ACTION BUTTONS -->
-        <form id="appriveForm" form asp-action="Approve" asp-controller="Certificates" method="post" class="d-inline">
+        <form id="approveForm" asp-action="Approve" asp-controller="Certificates" method="post" class="d-inline">
             @Html.AntiForgeryToken()
 
             <!-- REQUIRED FIELDS FOR CertificationLog -->
@@ -139,17 +139,34 @@
                         }
                     })
                     .then(resp => resp.blob())
-                    .then(blob => {
+                    .then(resp => {
+                        if (!resp.ok) {
+                            throw new Error("Failed to generate certificate.");
+                        }
+                        const disposition = resp.headers.get('Content-Disposition');
+                        let filename = certType + ".docx";
+                        if (disposition && disposition.indexOf('filename=') !== -1) {
+                            const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                            if (match != null && match[1]) {
+                                filename = match[1].replace(/['"]/g, '');
+                            }
+                        }
+                        return resp.blob().then(blob => ({ blob, filename }));
+                    })
+                    .then(({ blob, filename }) => {
                         const downloadUrl = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = downloadUrl;
-                        a.download = ""; // You can set the file name if you want
+                        a.download = filename;
                         document.body.appendChild(a);
                         a.click();
                         a.remove();
+                        window.URL.revokeObjectURL(downloadUrl);
 
                         // Redirect to Index after download starts
-                        window.location.href = '/Certificates/Index';
+                        setTimeout(() => {
+                            window.location.href = '/Certificates/Index';
+                        }, 1000);
                     })
                     .catch(err => {
                         alert('Error approving certificate. Try again.');

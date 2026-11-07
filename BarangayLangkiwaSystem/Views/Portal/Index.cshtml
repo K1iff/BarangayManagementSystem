@@ -1,0 +1,109 @@
+@model BarangayLangkiwaSystem.Models.CertRequest
+
+@{
+    ViewData["Title"] = "Resident Certificate Request Portal";
+    Layout = "_AuthLayout";
+}
+
+<div class="card border-0 shadow-lg p-4 p-md-5 rounded-4 bg-white">
+    <div class="text-center mb-4">
+        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold mb-2">
+            <i class="bi bi-file-earmark-text me-1"></i> Public E-Service
+        </span>
+        <h3 class="fw-bold text-dark mb-1">Request a Barangay Certificate</h3>
+        <p class="text-muted small">Submit your request online to receive fast, contactless processing at Barangay Langkiwa Hall.</p>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form asp-action="SubmitRequest" method="post" id="portalRequestForm">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-bold">Search Resident Name or ID *</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text"
+                       id="ResidentSearch"
+                       class="form-control bg-light border-0"
+                       placeholder="Start typing your name or resident ID..."
+                       value="@Model.ResidentName"
+                       autocomplete="off" />
+            </div>
+            <input type="hidden" id="ResidentId" asp-for="ResidentId" />
+            <span asp-validation-for="ResidentId" class="text-danger small"></span>
+            <div id="selectedResidentBadge" class="mt-2 text-success small fw-bold" style="display: @(Model.ResidentId > 0 ? "block" : "none");">
+                <i class="bi bi-check-circle-fill me-1"></i> Selected: <span id="residentDisplayName">@Model.ResidentName</span>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="CertificateType" class="form-label small fw-bold">Select Certificate Type *</label>
+            <select asp-for="CertificateType" id="CertificateType" class="form-select bg-light border-0">
+                <option value="">-- Choose Certificate Type --</option>
+                @if (ViewBag.CertificateTypes != null)
+                {
+                    foreach (var type in ViewBag.CertificateTypes)
+                    {
+                        <option value="@type.TypeName">@type.TypeName</option>
+                    }
+                }
+            </select>
+            <span asp-validation-for="CertificateType" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Purpose" class="form-label small fw-bold">Purpose of Request *</label>
+            <textarea asp-for="Purpose" class="form-control bg-light border-0" rows="3" placeholder="e.g. Local employment, scholarship application, bank requirement..."></textarea>
+            <span asp-validation-for="Purpose" class="text-danger small"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+            <i class="bi bi-send-fill me-2"></i> Submit Certificate Request
+        </button>
+    </form>
+
+    <div class="mt-4 pt-3 border-top text-center">
+        <a asp-controller="Accounts" asp-action="Login" class="text-decoration-none small text-muted">
+            <i class="bi bi-shield-lock me-1"></i> Barangay Official / Staff Login
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $("#ResidentSearch").autocomplete({
+                source: '/Portal/SearchResidents',
+                minLength: 2,
+                select: function (event, ui) {
+                    $("#ResidentSearch").val(ui.item.value);
+                    $("#ResidentId").val(ui.item.id);
+                    $("#residentDisplayName").text(ui.item.fullName + " (" + ui.item.purok + ")");
+                    $("#selectedResidentBadge").fadeIn();
+                    return false;
+                }
+            });
+
+            // If user alters the text manually, require selection
+            $("#ResidentSearch").on('input', function() {
+                if ($(this).val().trim() === "") {
+                    $("#ResidentId").val("");
+                    $("#selectedResidentBadge").hide();
+                }
+            });
+        });
+    </script>
+}
