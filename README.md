@@ -4,26 +4,8 @@
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#scripts--testing)
 [![Platform](https://img.shields.io/badge/platform-ASP.NET%20Core%20MVC-blue)](#tech-stack)
 [![Hosting](https://img.shields.io/badge/hosting-MonsterASP.NET-orange)](#tech-stack)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > A modern, web-based information management and automated certificate issuance platform designed to digitize resident records, streamline public document workflows, and enhance administrative accountability for Barangay Langkiwa.
-
-```
-+------------------------------------------------------------------------------------+
-|                                [ DEMO SCREENSHOT ]                                 |
-|                                                                                    |
-|       +---------------------+   +---------------------+   +---------------------+  |
-|       |  Total Residents    |   |  Pending Requests   |   |  Issued Documents   |  |
-|       |        1,250        |   |         14          |   |         432         |  |
-|       +---------------------+   +---------------------+   +---------------------+  |
-|                                                                                    |
-|       +------------------------------------+  +----------------------------------+ |
-|       |      Monthly Issuance Trends       |  |     Population by Purok          | |
-|       |          (Chart.js Bar)            |  |       (Chart.js Doughnut)        | |
-|       +------------------------------------+  +----------------------------------+ |
-|                                                                                    |
-+------------------------------------------------------------------------------------+
-```
 
 ---
 
@@ -259,11 +241,6 @@ dotnet format whitespace --verify-no-changes
 ```
 
 ---
-
-## 8. License & Contact
-
-### License
-This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
 
 ### Original Developers & Contributors
 * **Rance Aaron D. Capiral**
